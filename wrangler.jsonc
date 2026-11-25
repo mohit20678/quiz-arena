@@ -15,11 +15,5 @@
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["QuizRoom"] }
-  ],
-  "vars": {
-    "ADMIN_EMAIL": "mohithedau1@gmail.com",
-    "ADMIN_SALT_B64": "OWzkPnSCWmY_49bXrL_f2w",
-    "ADMIN_HASH_B64": "LKhEx0EzzS987mQGmfuxly-x7OExPIwfolrXLhRty5M",
-    "SESSION_SECRET": "a9b214000f58acf10a4ec12a6a53661bf3e52b901c8f35bbd304ef6d292015a6"
-  }
+  ]
 }

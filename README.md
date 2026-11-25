@@ -172,7 +172,16 @@ npx wrangler login
 npm run deploy
 ```
 
-`wrangler.jsonc` holds the runtime name, bindings and hashed login values. No personal details appear in this README.
+`wrangler.jsonc` holds only the runtime name, assets and bindings. Login values are stored as **Cloudflare secrets**, not in the repository:
+
+```bash
+printf '%s' '<admin-email>' | npx wrangler secret put ADMIN_EMAIL
+printf '%s' '<salt>' | npx wrangler secret put ADMIN_SALT_B64
+printf '%s' '<hash>' | npx wrangler secret put ADMIN_HASH_B64
+printf '%s' '<secret>' | npx wrangler secret put SESSION_SECRET
+```
+
+No personal details, passwords or secrets appear in this README or the repository.
 
 </details>
 
