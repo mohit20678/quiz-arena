@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0d1a">
+  <title>Quiz Arena</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div id="toastHost" class="toast-host" aria-live="polite"></div>
+
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">◈</span><span>Quiz<span class="brand-accent">Arena</span></span></div>
+    <span class="pill">Live class quiz</span>
+  </header>
+
+  <main class="app-shell home-shell">
+    <div class="center" style="margin-bottom:30px">
+      <div class="hero-icon">🎮</div>
+      <div class="eyebrow" style="justify-content:center">Welcome</div>
+      <h1 class="gradient-text">Choose your side</h1>
+      <p class="lead">One host runs the game. Groups join, answer together, and climb the leaderboard.</p>
+    </div>
+
+    <div class="home-tabs" role="tablist" aria-label="Choose area">
+      <button class="home-tab active" id="tabAdmin" role="tab" aria-selected="true" aria-controls="panelAdmin" type="button">
+        <span class="tab-icon">🔒</span>
+        <span><strong>Admin</strong><small>Sign in &amp; host the quiz</small></span>
+      </button>
+      <button class="home-tab" id="tabStudent" role="tab" aria-selected="false" aria-controls="panelStudent" type="button">
+        <span class="tab-icon">👥</span>
+        <span><strong>Students</strong><small>Register your group &amp; play</small></span>
+      </button>
+    </div>
+
+    <section class="card home-panel active" id="panelAdmin" role="tabpanel" aria-labelledby="tabAdmin">
+      <div class="eyebrow">For the teacher / organizer</div>
+      <h2>Run the quiz</h2>
+      <p>Sign in with your email and password, choose how many rounds to play, then start each round. Questions are set by the organizer in the server file — they cannot be changed from this page.</p>
+      <ul class="feature-list">
+        <li>🔐 Password-protected admin area</li>
+        <li>📋 View the question set and correct answers</li>
+        <li>🎯 Start, end, and advance rounds</li>
+        <li>📊 Final leaderboard with CSV export</li>
+      </ul>
+      <a class="btn btn-primary btn-lg" href="/admin">Open admin panel →</a>
+    </section>
+
+    <section class="card home-panel" id="panelStudent" role="tabpanel" aria-labelledby="tabStudent">
+      <div class="eyebrow">For the class</div>
+      <h2>Join the quiz</h2>
+      <p>Enter your name and roll number on your own device. Ten questions: 5 MCQs, 2 short answers, 2 essays, and 1 passage-based question.</p>
+      <ul class="feature-list">
+        <li>👤 Join individually with name and roll number</li>
+        <li>⚡ Live countdown and instant answer submission</li>
+        <li>🔒 Results revealed only at the end</li>
+        <li>📈 Final score shown as correct / total</li>
+      </ul>
+      <a class="btn btn-cyan btn-lg" href="/student">Open student page →</a>
+    </section>
+  </main>
+
+  <script src="/js/home.js"></script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+[
+  {
+    "type": "mcq",
+    "seconds": 30,
+    "text": "Which is a semi-synthetic polymer?",
+    "options": [
+      "Natural rubber",
+      "Cellulose acetate",
+      "PVC",
+      "Nylon-6,6"
+    ],
+    "correct": 1
+  },
+  {
+    "type": "mcq",
+    "seconds": 30,
+    "text": "Which tacticity has substituent groups alternating on either side of the chain?",
+    "options": [
+      "Isotactic",
+      "Atactic",
+      "Syndiotactic",
+      "Synthetic"
+    ],
+    "correct": 2
+  },
+  {
+    "type": "mcq",
+    "seconds": 30,
+    "text": "Which monomer is used to prepare PVC?",
+    "options": [
+      "Styrene",
+      "Ethylene",
+      "Butadiene",
+      "Vinyl chloride"
+    ],
+    "correct": 3
+  },
+  {
+    "type": "mcq",
+    "seconds": 30,
+    "text": "Which property makes Buna-S suitable for automobile tyres?",
+    "options": [
+      "Abrasion resistance",
+      "Transparency",
+      "Electrical conductivity",
+      "Water solubility"
+    ],
+    "correct": 0
+  },
+  {
+    "type": "mcq",
+    "seconds": 30,
+    "text": "Which is a biodegradable polymer?",
+    "options": [
+      "PVC",
+      "Polystyrene",
+      "Polylactic acid",
+      "Teflon"
+    ],
+    "correct": 2
+  },
+  {
+    "type": "short",
+    "seconds": 120,
+    "text": "Buna-S rubber — Name the two monomers used in its preparation.",
+    "method": "written",
+    "keywords": [
+      "1,3-Butadiene",
+      "Butadiene",
+      "Styrene"
+    ],
+    "requireAll": false
+  },
+  {
+    "type": "short",
+    "seconds": 120,
+    "text": "Conducting polymers — Name the two types based on the origin of electrical conductivity.",
+    "method": "written",
+    "keywords": [
+      "Intrinsic",
+      "Extrinsic"
+    ],
+    "requireAll": false
+  },
+  {
+    "type": "paragraph",
+    "seconds": 120,
+    "text": "Write the answers to all five parts (a–e) above.",
+    "passage": "Q8. Addition and condensation polymerization\na) Other name for addition polymerization?\nb) First stage of free radical addition polymerization?\nc) Stage in which the polymer chain grows?\nd) Stage in which chain growth stops?\ne) Other name for condensation polymerization in the notes?",
+    "method": "written",
+    "keywords": [
+      "Chain growth polymerization|chain growth",
+      "Initiation|first stage",
+      "Propagation|growth stage|chain grows",
+      "Termination|chain stops",
+      "Step growth polymerization|step growth"
+    ],
+    "requireAll": true
+  },
+  {
+    "type": "paragraph",
+    "seconds": 120,
+    "text": "Write the answers to all five parts (a–e) above.",
+    "passage": "Q9. Electrical conduction in polyacetylene\na) Double-bond arrangement responsible for electron delocalization?\nb) Doping that creates positive sites?\nc) Doping that creates negative sites?\nd) Process involving removal of electrons?\ne) Process involving addition of electrons?",
+    "method": "written",
+    "keywords": [
+      "Conjugation|conjugated double bonds",
+      "P-doping|p doping|positive doping",
+      "N-doping|n doping|negative doping",
+      "Oxidation|removal of electrons",
+      "Reduction|addition of electrons"
+    ],
+    "requireAll": true
+  },
+  {
+    "type": "paragraph",
+    "seconds": 120,
+    "passage": "PVC is a synthetic thermoplastic prepared by addition polymerization of vinyl chloride. Rigid PVC is used in pipes, while plasticized PVC is flexible and suitable for electrical and medical applications. Buna-S is a synthetic elastomer prepared from butadiene and styrene. Polyacetylene possesses conjugated double bonds, and doping enhances its conductivity. Biodegradable polymers degrade through the action of microorganisms. Polylactic acid (PLA) is used in packaging and biomedical applications.",
+    "method": "mcq",
+    "subs": [
+      {
+        "text": "Which substance improves PVC flexibility?",
+        "options": [
+          "Initiator",
+          "Plasticizer",
+          "Inhibitor",
+          "Monomer"
+        ],
+        "correct": 1
+      },
+      {
+        "text": "Buna-S belongs to which class?",
+        "options": [
+          "Fibres",
+          "Thermosetting plastics",
+          "Elastomers",
+          "Conducting polymers"
+        ],
+        "correct": 2
+      },
+      {
+        "text": "Which process enhances polyacetylene conductivity?",
+        "options": [
+          "Doping",
+          "Cooling",
+          "Condensation",
+          "Plasticization"
+        ],
+        "correct": 0
+      },
+      {
+        "text": "What primarily degrades biodegradable polymers?",
+        "options": [
+          "Metals",
+          "Plasticizers",
+          "Inert gases",
+          "Microorganisms"
+        ],
+        "correct": 3
+      },
+      {
+        "text": "What is the full form of PLA?",
+        "options": [
+          "Polylinear acid",
+          "Polylactic acid",
+          "Polyliquid acid",
+          "Polymeric Lewis acid"
+        ],
+        "correct": 1
+      }
+    ]
+  }
+]

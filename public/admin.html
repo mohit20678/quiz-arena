@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0d1a">
+  <title>Quiz Arena — Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div id="toastHost" class="toast-host" aria-live="polite"></div>
+
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">◈</span><span>Quiz<span class="brand-accent">Arena</span></span><span class="pill" style="margin-left:8px">Admin</span></div>
+    <div class="topbar-right">
+      <a class="btn btn-ghost btn-sm" href="/">Home</a>
+      <span class="pill" id="joinedCount">0 students joined</span>
+      <a class="btn btn-ghost btn-sm" href="/review" target="_blank" rel="noopener">Review answers ↗</a>
+      <a class="btn btn-ghost btn-sm" href="/student" target="_blank" rel="noopener">Student page ↗</a>
+      <span class="pill" title="Connection status"><i class="net-dot" id="netDot"></i><span id="netLabel">Offline</span></span>
+    </div>
+  </header>
+
+  <main class="app-shell admin-shell">
+
+    <!-- ============ LOGIN ============ -->
+    <section class="screen active" id="loginScreen">
+      <div class="card login-card">
+        <div class="login-mark">🔒</div>
+        <div class="eyebrow" style="justify-content:center">Restricted area</div>
+        <h1 style="font-size:clamp(26px,5vw,36px)">Admin sign in</h1>
+        <p class="center">Only the organizer can host the quiz.</p>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="adminEmail">Email</label>
+            <input class="input" id="adminEmail" type="email" autocomplete="username" placeholder="you@example.com" required>
+          </div>
+          <div class="field">
+            <label for="adminPassword">Password</label>
+            <input class="input" id="adminPassword" type="password" autocomplete="current-password" placeholder="Your password" required>
+          </div>
+          <button class="btn btn-primary btn-lg btn-block" type="submit" id="loginButton">Sign in →</button>
+        </form>
+        <p class="tiny muted center" style="margin-top:18px">After 5 wrong tries, sign-in pauses for 15 minutes.</p>
+      </div>
+    </section>
+
+    <!-- ============ ADMIN PANEL ============ -->
+    <section class="screen" id="panelScreen">
+      <div class="admin-head">
+        <div>
+          <div class="eyebrow">Signed in as admin</div>
+          <h1 style="font-size:clamp(26px,5vw,36px)">Quiz control</h1>
+        </div>
+        <button class="btn btn-danger btn-sm" id="logoutButton">Sign out</button>
+      </div>
+
+      <div class="card" style="margin-bottom:18px">
+        <div class="lb-head">
+          <h2>Question set <span class="pill" id="questionCount">0 questions</span></h2>
+        </div>
+        <p class="tiny muted">Edit any question: choose its type, set options and mark the correct answer. For a paragraph question you can add several MCQs. Changes apply when you press Save.</p>
+        <div id="questionList"></div>
+        <div class="q-actions" style="justify-content:space-between;margin-top:14px">
+          <button class="btn btn-ghost btn-sm" id="addQuestion">+ Add question</button>
+          <button class="btn btn-primary" id="saveQuestions">Save questions</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px">
+        <p class="muted">All saved questions are played in order — one question per round. Set the time for each question inside its <strong>✏ Edit</strong> form.</p>
+        <button class="btn btn-primary btn-lg" id="startGame">Start game →</button>
+      </div>
+
+      <div id="liveArea" hidden>
+        <div class="status-strip" id="statusStrip"></div>
+        <div id="phaseBody"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0d1a">
+  <title>Quiz Arena — Student</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div id="confettiHost" class="confetti-host" aria-hidden="true"></div>
+  <div id="toastHost" class="toast-host" aria-live="polite"></div>
+
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">◈</span><span>Quiz<span class="brand-accent">Arena</span></span></div>
+    <div class="topbar-right">
+      <span class="pill" id="roundPill" hidden>Round —</span>
+      <span class="pill score-pill" id="scorePill" hidden>★ <span id="topScore">0</span></span>
+      <span class="pill" title="Connection status"><i class="net-dot" id="netDot"></i><span id="netLabel">Connecting…</span></span>
+    </div>
+  </header>
+
+  <main class="app-shell">
+
+    <!-- ============ REGISTER GROUP ============ -->
+    <section class="screen active" id="joinScreen">
+      <div class="join-hero">
+        <div class="hero-icon">👥</div>
+        <div class="eyebrow" style="justify-content:center">Group check-in</div>
+        <h1 class="gradient-text">Join the quiz</h1>
+        <p class="lead">Enter your details on your own device. Ten questions are waiting for you.</p>
+      </div>
+
+      <form class="card" id="joinForm" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="studentName">Full name <span class="hint">· required</span></label>
+            <input class="input" id="studentName" maxlength="40" autocomplete="name" placeholder="e.g. Aarav Sharma">
+          </div>
+          <div class="field">
+            <label for="studentRoll">Roll number <span class="hint">· required</span></label>
+            <input class="input" id="studentRoll" maxlength="30" placeholder="e.g. 21CS04">
+          </div>
+        </div>
+        <div class="field">
+          <label for="studentTeam">Class / team <span class="hint">· optional</span></label>
+          <input class="input" id="studentTeam" maxlength="40" placeholder="e.g. 10-B or Team Red">
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-block" type="submit">Join quiz →</button>
+        <div class="join-foot">
+          <span class="tiny muted">Details stay in this browser.</span>
+          <a class="link-btn" href="/">← Back to home</a>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ SECOND TAB ============ -->
+    <section class="screen" id="secondTabScreen">
+      <div class="card lobby-card">
+        <div class="hero-icon" style="margin-bottom:20px">🚫</div>
+        <div class="eyebrow" style="justify-content:center">Second tab detected</div>
+        <h2>You opened this quiz in another tab</h2>
+        <p class="lead center">This tab has been signed out. Please use only one tab or device for your quiz place.</p>
+        <p class="tiny muted center">You still have one more chance. Close the other tab and reopen this page on this device.</p>
+        <button class="btn btn-ghost btn-sm" id="secondTabBack">Back to home</button>
+      </div>
+    </section>
+
+    <!-- ============ REMOVED ============ -->
+    <section class="screen" id="removedScreen">
+      <div class="card lobby-card">
+        <div class="hero-icon" style="margin-bottom:20px">🚫</div>
+        <div class="eyebrow" style="justify-content:center">Removed by admin</div>
+        <h2>The admin removed you from this quiz</h2>
+        <p class="lead center">If you think this was a mistake, please ask your teacher.</p>
+        <button class="btn btn-ghost btn-sm" id="removedBack">Back to home</button>
+      </div>
+    </section>
+
+    <!-- ============ FEEDBACK ============ -->
+    <section class="screen" id="feedbackScreen">
+      <div class="card lobby-card">
+        <div class="hero-icon" style="margin-bottom:20px">💬</div>
+        <div class="eyebrow" style="justify-content:center">Before you leave</div>
+        <h2>How did the website work for you?</h2>
+        <p class="lead center">Your feedback helps us make the next quiz better.</p>
+        <div class="rating-row" id="ratingRow" role="group" aria-label="Rating from 1 to 5">
+          <button type="button" class="rating-btn" data-rate="1">1</button>
+          <button type="button" class="rating-btn" data-rate="2">2</button>
+          <button type="button" class="rating-btn" data-rate="3">3</button>
+          <button type="button" class="rating-btn" data-rate="4">4</button>
+          <button type="button" class="rating-btn" data-rate="5">5</button>
+        </div>
+        <p class="tiny muted center" id="ratingHint">1 = poor · 5 = excellent</p>
+        <textarea class="input" id="feedbackText" rows="4" maxlength="1000" placeholder="What worked well? What should we change?"></textarea>
+        <div class="admin-actions" style="justify-content:center;margin-top:18px">
+          <button class="btn btn-primary" id="submitFeedback">Send feedback &amp; leave</button>
+          <button class="btn btn-ghost btn-sm" id="skipFeedback">Skip</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BLOCKED ============ -->
+    <section class="screen" id="blockedScreen">
+      <div class="card lobby-card">
+        <div class="hero-icon" style="margin-bottom:20px">🔒</div>
+        <div class="eyebrow" style="justify-content:center">Place blocked</div>
+        <h2>This place can no longer join</h2>
+        <p class="lead center">You used both chances by opening the quiz in a second tab. Ask your teacher for help.</p>
+        <button class="btn btn-ghost btn-sm" id="blockedBack">Back to home</button>
+      </div>
+    </section>
+
+    <!-- ============ LOBBY ============ -->
+    <section class="screen" id="lobbyScreen">
+      <div class="card lobby-card">
+        <div class="avatar lg" id="lobbyAvatar">T</div>
+        <div class="eyebrow" style="justify-content:center">You're in!</div>
+        <h2 id="lobbyWelcome">Team registered 👋</h2>
+        <p>Waiting for the host to start round 1<span class="wait-dots"><i></i><i></i><i></i></span></p>
+        <div id="lobbyMembers" class="member-chips"></div>
+        <div class="stat-row">
+          <div class="stat"><b class="count-big" id="lobbyCount">0</b><small>students joined</small></div>
+          <div class="stat"><b id="lobbyRounds">—</b><small>questions in this game</small></div>
+          <div class="stat"><b id="lobbyRoll">—</b><small>your roll number</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ QUESTION ============ -->
+    <section class="screen" id="questionScreen">
+      <div class="card">
+        <div class="q-head">
+          <span class="eyebrow" id="qRound">Round 1 of 10</span>
+          <span class="pill" id="qType">Question</span>
+          <span class="timer-pill">⏱ <span id="qSeconds">30</span>s</span>
+        </div>
+        <div class="timer-track"><div class="timer-bar" id="qTimerBar" data-duration="30"></div></div>
+        <div class="question-text" id="qText">Question goes here?</div>
+        <div class="options" id="qOptions"></div>
+        <div id="qWrittenWrap" hidden>
+          <div class="passage-box" id="qPassage"></div>
+          <textarea class="input answer-box" id="qAnswerText" rows="6" maxlength="2000" placeholder="Type your answer here…"></textarea>
+          <div class="tiny muted" id="qCharCount" style="margin-top:6px">0 characters</div>
+        </div>
+        <div id="qSubsWrap" hidden>
+          <div class="passage-box" id="qSubsPassage"></div>
+          <div id="qSubs"></div>
+        </div>
+        <div class="submit-wrap">
+          <button class="btn btn-primary btn-lg" id="submitAnswer" disabled>Submit answer</button>
+          <span class="locked-note" id="lockedNote" hidden>✓ Answer submitted — wait for the admin to proceed<span class="wait-dots"><i></i><i></i><i></i></span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ROUND END ============ -->
+    <section class="screen" id="roundEndScreen">
+      <div class="card lobby-card">
+        <div class="hero-icon" style="margin-bottom:22px">⏳</div>
+        <div class="eyebrow" style="justify-content:center" id="reRound">Round 1 complete</div>
+        <h2 id="reTitle">Answer submitted</h2>
+        <p class="lead center" id="reMessage">
+          Please wait for the next round to begin<span class="wait-dots"><i></i><i></i><i></i></span>
+        </p>
+        <div class="wait-track"><div class="wait-fill"></div></div>
+        <div class="lb-panel" style="margin-top:26px;text-align:left">
+          <div class="lb-head"><h3>Leaderboard</h3><span class="tiny muted" id="reStanding">You are #1</span></div>
+          <div id="reLeaderboard"></div>
+        </div>
+        <p class="tiny muted center" style="margin-top:18px">Full results are revealed at the end of the quiz.</p>
+      </div>
+    </section>
+
+    <!-- ============ GAME END ============ -->
+    <section class="screen" id="gameEndScreen">
+      <div class="winner-banner">
+        <span class="crown">👑</span>
+        <h2 id="winnerName">Winner</h2>
+        <p class="muted" id="winnerSub">has the most correct answers!</p>
+      </div>
+      <div class="card">
+        <div class="podium" id="finalPodium"></div>
+        <div class="card your-final" style="margin-bottom:22px">
+          <div class="eyebrow" style="justify-content:center">Your result</div>
+          <div class="big-score" id="myFinalScoreFrac">0/0</div>
+          <div class="muted">correct answers · rank <strong id="myFinalRank">#1</strong> · <span id="myFinalPoints">0 pts</span></div>
+          <div class="stat-row">
+            <div class="stat"><b id="myFinalAccuracy">0%</b><small>accuracy</small></div>
+            <div class="stat"><b id="myFinalStreak">0</b><small>best streak 🔥</small></div>
+            <div class="stat"><b id="myFinalRoll">—</b><small>roll number</small></div>
+          </div>
+        </div>
+        <div class="lb-head"><h3>Final leaderboard</h3><span class="tiny muted">Correct / total · then points</span></div>
+        <div id="finalLeaderboard"></div>
+        <div class="center" style="margin-top:24px">
+          <button class="btn btn-ghost btn-sm" id="leaveBtn">Leave quiz</button>
+          <p class="tiny muted" style="margin-top:10px">Waiting for the host to start a new game…</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/student.js"></script>
+</body>
+</html>
