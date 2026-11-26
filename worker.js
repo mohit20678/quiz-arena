@@ -512,6 +512,16 @@ export class QuizRoom extends DurableObject {
           }
           p.rejoins = (p.rejoins || 0) + 1;
         } else {
+          const duplicate = [...this.g.players.values()].find(
+            (x) => !x.removed && x.connected && x.rollNumber && x.rollNumber === valid.rollNumber
+          );
+          if (duplicate) {
+            return this.send(ws, {
+              type: 'error',
+              code: 'duplicate',
+              message: 'This roll number is already joined on another device. Use the device that joined first.',
+            });
+          }
           if (this.g.players.size >= 150) return this.send(ws, { type: 'error', message: 'This quiz is full. Please try again later.' });
           p = {
             id: crypto.randomUUID(), token: crypto.randomUUID(), score: 0, correctCount: 0,
@@ -577,6 +587,32 @@ export class QuizRoom extends DurableObject {
       case 'end_round': if (meta.role === 'admin') this.endRound(); break;
       case 'undo_round': if (meta.role === 'admin') this.undoRound(); break;
       case 'reset_game': if (meta.role === 'admin') this.resetGame(); break;
+      case 'away': {
+        if (meta.role !== 'student') return;
+        const p = this.g.players.get(meta.id);
+        if (!p || p.removed) return;
+        p.rejoins = (p.rejoins || 0) + 1;
+        const banned = p.rejoins >= 2;
+        if (banned) p.banned = true;
+        this.send(ws, {
+          type: 'error',
+          code: banned ? 'blocked' : 'away',
+          message: banned
+            ? 'You left the quiz tab twice. This place is now blocked.'
+            : 'You switched away from the quiz tab. This device has been signed out. You have one more chance.',
+        });
+        p.connected = false;
+        if (p.ws === ws) p.ws = null;
+        for (const [sock, clientMeta] of this.sockets) {
+          if (clientMeta.id === p.id && sock !== this.adminWs) {
+            this.sockets.delete(sock);
+            try { sock.close(4005, 'left quiz tab'); } catch (_) { /* ignore */ }
+          }
+        }
+        try { ws.close(4005, 'left quiz tab'); } catch (_) { /* ignore */ }
+        this.broadcast();
+        break;
+      }
       case 'remove_player': {
         if (meta.role !== 'admin') return;
         const target = this.g.players.get(String(msg.id || ''));
@@ -654,7 +690,8 @@ export default {
       return withSecurity(await env.ASSETS.fetch(request));
     }
 
-    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('main'));
+    // A fresh room name guarantees all clients run the newest game rules after an upgrade.
+    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v2'));
 
     if (path === '/health') return withSecurity(await stub.fetch(new Request(url, { headers: request.headers })));
 

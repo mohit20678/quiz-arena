@@ -130,6 +130,8 @@ Propagation|growth stage|chain grows
 - Five wrong passwords pause sign-in for 15 minutes.
 - A second admin tab is signed out — the HDMI screen stays under your control.
 - A student opening a second tab is signed out on **both** tabs. Two times means that place is permanently blocked.
+- Switching to another tab or window signs the student out immediately. Again, the first time leaves one rejoin chance; the second time blocks that place permanently.
+- One roll number can only be joined from **one device** at a time — a second device is refused even with a different browser token.
 - A teacher can remove any student mid-quiz; that student sees a clear message and cannot rejoin.
 - Correct answers and scores are withheld from students until the end.
 - All input is checked on the server and escaped before display.
@@ -208,6 +210,8 @@ PORT=8787 ADMIN_PASSWORD="<your-password>" node test/require-all.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/tab-limit.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/feedback-review.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/remove.cjs
+PORT=8787 ADMIN_PASSWORD="<your-password>" node test/away.cjs
+PORT=8787 ADMIN_PASSWORD="<your-password>" node test/duplicate.cjs
 ```
 
 ---

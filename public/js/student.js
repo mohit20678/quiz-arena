@@ -59,7 +59,15 @@ function handleMessage(msg) {
       break;
 
     case 'error':
-      if (msg.code === 'removed') {
+      if (msg.code === 'away') {
+        lockedScreen = true;
+        net.stopped = true;
+        showScreen('awayScreen');
+      } else if (msg.code === 'duplicate') {
+        net.stopped = true;
+        showScreen('joinScreen');
+        showToast(msg.message, 'error');
+      } else if (msg.code === 'removed') {
         lockedScreen = true;
         net.stopped = true;
         localStorage.removeItem(STORAGE_KEY);
@@ -326,6 +334,20 @@ watchSecondTabs('quiz-arena-student-tabs', () => {
   showScreen('secondTabScreen');
 });
 
+let awayReported = false;
+
+function reportAway() {
+  if (awayReported || lockedScreen || !state || state.phase === 'gameEnd') return;
+  const active = [...document.querySelectorAll('.screen')].find((s) => s.classList.contains('active'))?.id;
+  if (['awayScreen', 'removedScreen', 'blockedScreen', 'secondTabScreen', 'feedbackScreen'].includes(active)) return;
+  awayReported = true;
+  net.send({ type: 'away' });
+}
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) reportAway(); });
+window.addEventListener('blur', reportAway);
+
+$('#awayBack').addEventListener('click', () => { location.href = '/'; });
 $('#removedBack').addEventListener('click', () => { location.href = '/'; });
 $('#secondTabBack').addEventListener('click', () => { location.href = '/'; });
 $('#blockedBack').addEventListener('click', () => { location.href = '/'; });
