@@ -373,27 +373,44 @@ function renderPending(pending) {
   const panel = $('#pendingPanel');
   if (!panel) return;
   if (!pending.length) { panel.hidden = true; panel.innerHTML = ''; return; }
+  const previouslySelected = new Set($$('.pending-check:checked', panel).map((x) => x.dataset.id));
   panel.hidden = false;
   panel.innerHTML = `
     <div class="pending-head">
       <span class="pending-icon">⚠️</span>
-      <div><strong>${pending.length} student${pending.length === 1 ? '' : 's'} kicked out</strong>
-      <div class="tiny muted">Allow them back into the quiz?</div></div>
+      <div><strong>${pending.length} student${pending.length === 1 ? '' : 's'} waiting</strong>
+      <div class="tiny muted">Select students, then allow or deny them back.</div></div>
     </div>
+    <label class="check-row"><input type="checkbox" id="selectAllPending"> Select all (${pending.length})</label>
     ${pending.map((p) => `
       <div class="pending-row">
+        <input type="checkbox" class="pending-check" data-id="${p.id}" ${previouslySelected.has(p.id) ? 'checked' : ''}>
         <span class="p-meta"><strong>${escapeHTML(p.name)}</strong><small>Roll ${escapeHTML(p.rollNumber)} · ${escapeHTML(p.reason)}</small></span>
-        <button class="btn btn-sm btn-primary approve-one" data-id="${p.id}">Allow</button>
       </div>`).join('')}
-    <button class="btn btn-sm btn-block btn-cyan" id="approveAll">Allow all (${pending.length})</button>`;
-  $$('.approve-one', panel).forEach((btn) => btn.addEventListener('click', () => {
-    net.send({ type: 'approve_player', id: btn.dataset.id });
+    <div class="admin-actions" style="justify-content:stretch">
+      <button class="btn btn-sm btn-cyan" id="allowSelected">Allow selected</button>
+      <button class="btn btn-sm btn-danger" id="denySelected">Deny selected</button>
+    </div>`;
+
+  const boxes = $$('.pending-check', panel);
+  const selectAll = $('#selectAllPending', panel);
+  selectAll.addEventListener('change', () => boxes.forEach((b) => { b.checked = selectAll.checked; }));
+  boxes.forEach((b) => b.addEventListener('change', () => {
+    selectAll.checked = boxes.length > 0 && boxes.every((x) => x.checked);
   }));
-  $('#approveAll', panel).addEventListener('click', () => net.send({ type: 'approve_all' }));
+
+  const sendSelected = (type) => {
+    const ids = boxes.filter((b) => b.checked).map((b) => b.dataset.id);
+    if (!ids.length) return showToast('Select at least one student first.');
+    net.send({ type, ids });
+  };
+  $('#allowSelected', panel).addEventListener('click', () => sendSelected('approve_selected'));
+  $('#denySelected', panel).addEventListener('click', () => sendSelected('deny_selected'));
 }
 
 function renderLive(state) {
   currentState = state;
+  renderPending(state.pending || []);
   if (state.phase === 'idle') {
     $('#liveArea').hidden = true;
     showScreen('panelScreen');
@@ -410,8 +427,6 @@ function renderLive(state) {
     <span class="status-chip">Students <b>${state.onlineCount}</b></span>
     ${state.phase === 'question' ? `<span class="status-chip">Answered <b>${state.answeredCount} / ${state.onlineCount}</b></span>` : ''}
   `;
-
-  renderPending(state.pending || []);
 
   switch (state.phase) {
     case 'lobby': renderLobbyPanel(state); break;

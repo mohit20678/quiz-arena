@@ -132,6 +132,7 @@ export class QuizRoom extends DurableObject {
     this.g.questions = validateQuestionSet(stored || DEFAULT_QUESTIONS);
     this.g.history = (await this.ctx.storage.get('history')) || [];
     this.g.feedback = (await this.ctx.storage.get('feedback')) || [];
+    this.g.pending = (await this.ctx.storage.get('pending')) || [];
   }
 
   async fetch(request) {
@@ -176,8 +177,10 @@ export class QuizRoom extends DurableObject {
     if (path === '/clear-data' && request.method === 'POST') {
       this.g.history = [];
       this.g.feedback = [];
-      this.ctx.storage.put('history', this.g.history).catch(() => {});
-      this.ctx.storage.put('feedback', this.g.feedback).catch(() => {});
+      this.g.pending = [];
+      await this.ctx.storage.put('history', this.g.history);
+      await this.ctx.storage.put('feedback', this.g.feedback);
+      await this.ctx.storage.put('pending', this.g.pending);
       this.resetGame();
       return json({ ok: true });
     }
@@ -209,7 +212,7 @@ export class QuizRoom extends DurableObject {
         existing.rejoins = (existing.rejoins || 0) + 1;
         const banned = existing.rejoins >= 2;
         if (banned) existing.banned = true;
-        this.flagPending(existing, 'second tab');
+        await this.flagPending(existing, 'second tab');
         this.send(existing.ws, { type: 'error', code: banned ? 'blocked' : 'second_tab', message: banned ? 'This place was opened in a second tab too many times. It is now blocked.' : 'Another tab opened this quiz. This tab has been signed out.' });
         this.send(server, { type: 'error', code: banned ? 'blocked' : 'second_tab', message: banned ? 'You used both chances. This place is now blocked.' : 'You opened this quiz in a second tab. This tab has been signed out. You have one more chance.' });
         try { existing.ws.close(4003, 'second tab'); } catch (_) {}
@@ -482,9 +485,13 @@ export class QuizRoom extends DurableObject {
     return { name, rollNumber, team };
   }
 
-  flagPending(player, reason) {
-    if (!player || player.removed || player.banned) return;
-    if (!this.g.pending.some((x) => x.id === player.id)) {
+  async flagPending(player, reason) {
+    if (!player) return;
+    const existing = this.g.pending.find((x) => x.id === player.id);
+    if (existing) {
+      existing.reason = reason;
+      existing.at = Date.now();
+    } else {
       this.g.pending.push({
         id: player.id,
         name: player.name,
@@ -493,19 +500,49 @@ export class QuizRoom extends DurableObject {
         at: Date.now(),
       });
     }
+    await this.ctx.storage.put('pending', this.g.pending);
   }
 
-  approvePlayers(id, all) {
-    const list = all ? this.g.pending.slice() : this.g.pending.filter((x) => x.id === id);
+  async approvePlayers(id, all, ids) {
+    const list = ids
+      ? this.g.pending.filter((x) => ids.includes(x.id))
+      : all ? this.g.pending.slice() : this.g.pending.filter((x) => x.id === id);
     for (const item of list) {
       const p = this.g.players.get(item.id);
       if (p) {
         p.banned = false;
         p.removed = false;
+        p.denied = false;
         p.rejoins = 0;
+        for (const [ws, meta] of this.sockets) {
+          if (meta.id === p.id || meta.token === p.token) this.send(ws, { type: 'approved' });
+        }
       }
     }
     this.g.pending = this.g.pending.filter((x) => !list.includes(x));
+    await this.ctx.storage.put('pending', this.g.pending);
+    this.broadcast();
+  }
+
+  async denyPlayers(id, all, ids) {
+    const list = ids
+      ? this.g.pending.filter((x) => ids.includes(x.id))
+      : all ? this.g.pending.slice() : this.g.pending.filter((x) => x.id === id);
+    for (const item of list) {
+      const p = this.g.players.get(item.id);
+      if (p) {
+        p.banned = true;
+        p.denied = true;
+        for (const [ws, meta] of this.sockets) {
+          if (meta.id === p.id || meta.token === p.token) {
+            this.send(ws, { type: 'error', code: 'denied', message: 'The admin denied your rejoin request.' });
+            try { ws.close(4006, 'rejoin denied'); } catch (_) { /* ignore */ }
+          }
+        }
+      }
+    }
+    this.g.pending = this.g.pending.filter((x) => !list.includes(x));
+    await this.ctx.storage.put('pending', this.g.pending);
     this.broadcast();
   }
 
@@ -519,7 +556,7 @@ export class QuizRoom extends DurableObject {
     this.broadcast();
   }
 
-  onMessage(ws, raw) {
+  async onMessage(ws, raw) {
     let msg;
     try { msg = JSON.parse(raw); } catch (_) { return; }
     if (!msg || typeof msg.type !== 'string') return;
@@ -534,14 +571,15 @@ export class QuizRoom extends DurableObject {
         let p = null;
         if (msg.token) p = [...this.g.players.values()].find((x) => x.token === msg.token);
         if (p) {
-          if (p.removed) return this.send(ws, { type: 'error', code: 'removed', message: 'The admin removed you from this quiz.' });
-          if (p.banned) return this.send(ws, { type: 'error', code: 'blocked', message: 'This quiz place has been blocked because it was opened in a second tab too many times.' });
+          if (p.denied) return this.send(ws, { type: 'error', code: 'denied', message: 'The admin denied your rejoin request.' });
+          if (p.removed) return this.send(ws, { type: 'error', code: 'removed', message: 'You were removed from this quiz. Ask the admin to allow you back.' });
+          if (p.banned) return this.send(ws, { type: 'error', code: 'blocked', message: 'This place is paused. Send a rejoin request and wait for the admin.' });
           const otherOpen = p.connected && p.ws && p.ws.readyState === WebSocket.OPEN && p.ws !== ws;
           if (otherOpen) {
             p.rejoins = (p.rejoins || 0) + 1;
             const banned = p.rejoins >= 2;
             if (banned) p.banned = true;
-            this.flagPending(p, 'second tab');
+            await this.flagPending(p, 'second tab');
             this.send(p.ws, { type: 'error', code: banned ? 'blocked' : 'second_tab', message: 'Another tab opened this quiz. This tab has been signed out.' });
             this.send(ws, { type: 'error', code: banned ? 'blocked' : 'second_tab', message: banned ? 'You used both chances. This place is now blocked.' : 'You opened this quiz in a second tab. This tab has been signed out. You have one more chance.' });
             try { p.ws.close(4003, 'second tab'); } catch (_) {}
@@ -567,7 +605,7 @@ export class QuizRoom extends DurableObject {
           if (this.g.players.size >= 150) return this.send(ws, { type: 'error', message: 'This quiz is full. Please try again later.' });
           p = {
             id: crypto.randomUUID(), token: crypto.randomUUID(), score: 0, correctCount: 0,
-            streak: 0, bestStreak: 0, rejoins: 0, banned: false, removed: false, joinedAt: Date.now(), connected: true, ws,
+            streak: 0, bestStreak: 0, rejoins: 0, banned: false, removed: false, denied: false, joinedAt: Date.now(), connected: true, ws,
           };
           this.g.players.set(p.id, p);
         }
@@ -632,11 +670,35 @@ export class QuizRoom extends DurableObject {
       case 'undo_round': if (meta.role === 'admin') this.undoRound(); break;
       case 'reset_game': if (meta.role === 'admin') this.resetGame(); break;
       case 'approve_player':
-        if (meta.role === 'admin') this.approvePlayers(String(msg.id || ''), false);
+        if (meta.role === 'admin') await this.approvePlayers(String(msg.id || ''), false);
         break;
       case 'approve_all':
-        if (meta.role === 'admin') this.approvePlayers('', true);
+        if (meta.role === 'admin') await this.approvePlayers('', true);
         break;
+      case 'deny_player':
+        if (meta.role === 'admin') await this.denyPlayers(String(msg.id || ''), false);
+        break;
+      case 'deny_all':
+        if (meta.role === 'admin') await this.denyPlayers('', true);
+        break;
+      case 'approve_selected':
+        if (meta.role === 'admin') await this.approvePlayers('', false, Array.isArray(msg.ids) ? msg.ids : []);
+        break;
+      case 'deny_selected':
+        if (meta.role === 'admin') await this.denyPlayers('', false, Array.isArray(msg.ids) ? msg.ids : []);
+        break;
+      case 'request_rejoin': {
+        if (meta.role !== 'student') return;
+        const player = (msg.token && [...this.g.players.values()].find((x) => x.token === msg.token)) ||
+          [...this.g.players.values()].find((x) => x.rollNumber === String(msg.rollNumber || ''));
+        if (!player) return this.send(ws, { type: 'error', message: 'We could not find your details. Please join again.' });
+        player.name = String(msg.name || player.name).trim().slice(0, 40) || player.name;
+        player.rollNumber = String(msg.rollNumber || player.rollNumber).trim().slice(0, 30) || player.rollNumber;
+        await this.flagPending(player, 'rejoin request');
+        this.send(ws, { type: 'rejoin_requested' });
+        this.broadcast();
+        break;
+      }
       case 'away': {
         if (meta.role !== 'student') return;
         const p = this.g.players.get(meta.id);
@@ -644,7 +706,7 @@ export class QuizRoom extends DurableObject {
         p.rejoins = (p.rejoins || 0) + 1;
         const banned = p.rejoins >= 2;
         if (banned) p.banned = true;
-        this.flagPending(p, 'left quiz tab');
+        await this.flagPending(p, 'left quiz tab');
         this.send(ws, {
           type: 'error',
           code: banned ? 'blocked' : 'away',
@@ -669,7 +731,7 @@ export class QuizRoom extends DurableObject {
         const target = this.g.players.get(String(msg.id || ''));
         if (!target) return;
         target.removed = true;
-        this.flagPending(target, 'removed by admin');
+        await this.flagPending(target, 'removed by admin');
         target.connected = false;
         if (target.ws) {
           this.send(target.ws, { type: 'error', code: 'removed', message: 'The admin removed you from this quiz.' });
@@ -750,7 +812,7 @@ export default {
     }
 
     // A fresh room name guarantees all clients run the newest game rules after an upgrade.
-    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v3'));
+    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v7'));
 
     if (path === '/health') return withSecurity(await stub.fetch(new Request(url, { headers: request.headers })));
 

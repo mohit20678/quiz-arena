@@ -16,6 +16,7 @@ let lastQuestionKey = '';
 let confettiDone = false;
 let autoJoinAttempted = false;
 let lockedScreen = false;
+let awaitingApproval = false;
 let reviewDone = false;
 let reviewRatings = { website: 0, games: 0, questions: 0 };
 let reviewIssue = '';
@@ -28,7 +29,7 @@ const net = new Net(socketPath, handleMessage, (status) => {
   const online = status === 'open';
   setNetStatus(online);
   $('#netLabel').textContent = online ? 'Live' : 'Offline';
-  if (online && saved?.name && saved?.rollNumber) doJoin();
+  if (online && saved?.name && saved?.rollNumber && !awaitingApproval) doJoin();
 });
 
 function persist() {
@@ -66,27 +67,27 @@ function handleMessage(msg) {
       showScreen('gameEndScreen');
       break;
 
+    case 'approved':
+      awaitingApproval = false;
+      lockedScreen = false;
+      showToast('The admin allowed you back. Rejoining…', 'success');
+      doJoin();
+      break;
+
+    case 'rejoin_requested':
+      $('#rejoinTitle').textContent = 'Request sent';
+      $('#rejoinMessage').textContent = 'Waiting for the admin to allow you back. This page will continue automatically.';
+      break;
+
     case 'error':
-      if (msg.code === 'away') {
+      if (['away', 'removed', 'second_tab', 'blocked', 'denied'].includes(msg.code)) {
+        awaitingApproval = true;
         lockedScreen = true;
-        net.stopped = true;
-        showScreen('awayScreen');
+        showRejoin(msg.message);
       } else if (msg.code === 'duplicate') {
         net.stopped = true;
         showScreen('joinScreen');
         showToast(msg.message, 'error');
-      } else if (msg.code === 'removed') {
-        lockedScreen = true;
-        net.stopped = true;
-        showScreen('removedScreen');
-      } else if (msg.code === 'second_tab') {
-        lockedScreen = true;
-        net.stopped = true;
-        showScreen('secondTabScreen');
-      } else if (msg.code === 'blocked') {
-        lockedScreen = true;
-        net.stopped = true;
-        showScreen('blockedScreen');
       } else {
         showToast(msg.message, 'error');
       }
@@ -376,12 +377,32 @@ $('#submitReview').addEventListener('click', () => {
 
 $('#backToResults').addEventListener('click', () => showScreen('gameEndScreen'));
 
+function showRejoin(message) {
+  $('#rejoinTitle').textContent = 'Request to rejoin';
+  $('#rejoinMessage').textContent = message || 'Your details are saved. Send a request and wait for the admin.';
+  $('#rejoinDetails').innerHTML = saved?.name
+    ? `<span class="member-chip">${escapeHTML(saved.name)} · Roll ${escapeHTML(saved.rollNumber || '')}</span>`
+    : '<span class="tiny muted">No saved details</span>';
+  showScreen('rejoinScreen');
+}
+
+$('#requestRejoin').addEventListener('click', () => {
+  net.send({
+    type: 'request_rejoin',
+    name: saved?.name || '',
+    rollNumber: saved?.rollNumber || '',
+    token: myToken || null,
+  });
+  $('#rejoinTitle').textContent = 'Request sent';
+  $('#rejoinMessage').textContent = 'Waiting for the admin to allow you back.';
+});
+
 let awayReported = false;
 
 function reportAway() {
   if (awayReported || lockedScreen || !state || state.phase === 'gameEnd') return;
   const active = [...document.querySelectorAll('.screen')].find((s) => s.classList.contains('active'))?.id;
-  if (['awayScreen', 'removedScreen', 'blockedScreen', 'secondTabScreen', 'feedbackScreen'].includes(active)) return;
+  if (['awayScreen', 'removedScreen', 'blockedScreen', 'secondTabScreen', 'feedbackScreen', 'rejoinScreen'].includes(active)) return;
   awayReported = true;
   net.send({ type: 'away' });
 }
@@ -389,6 +410,7 @@ function reportAway() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) reportAway(); });
 window.addEventListener('blur', reportAway);
 
+$('#rejoinHome').addEventListener('click', () => { location.href = '/'; });
 $('#awayBack').addEventListener('click', () => { location.href = '/'; });
 $('#removedBack').addEventListener('click', () => { location.href = '/'; });
 $('#secondTabBack').addEventListener('click', () => { location.href = '/'; });

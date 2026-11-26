@@ -156,15 +156,7 @@ When the quiz ends, every student automatically sees a review form asking:
 
 Leaving early also opens a short feedback form. All answers are stored and shown on the Review page.
 
-On a second laptop, open the **Review** page and sign in. It shows:
-
-- every student's answer to every question
-- who answered correctly and how many points they earned
-- all feedback including the three ratings, technical-issue details and suggestions
-- students waiting for admin approval after being kicked out
-- **Download answers (Excel CSV)** and **Download feedback (Excel CSV)**
-
-The Review page is read-only, so it does not interfere with the teacher's single admin tab.
+There is no separate browser review page. Feedback is stored on Cloudflare after the quiz. The admin panel shows a **Select all** box for students waiting to rejoin, with bulk **Allow selected** and **Deny selected** buttons so a large crowd can be handled at once.
 
 ---
 
@@ -174,8 +166,6 @@ The app is deployed as one Cloudflare Worker with static assets and one Durable 
 
 - **Students:** `https://<your-subdomain>/student`
 - **Admin (projector):** `https://<your-subdomain>/admin`
-- **Review (second laptop):** `https://<your-subdomain>/review`
-
 No local server, no tunnel, no laptop that must stay awake. HTTPS is automatic.
 
 <details>
@@ -221,13 +211,13 @@ PORT=8787 ADMIN_PASSWORD="<your-password>" node test/auto-end.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/editor.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/require-all.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/tab-limit.cjs
-PORT=8787 ADMIN_PASSWORD="<your-password>" node test/feedback-review.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/remove.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/away.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/duplicate.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/approval.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/autoadvance.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/structured-feedback.cjs
+PORT=8787 ADMIN_PASSWORD="<your-password>" node test/rejoin.cjs
 ```
 
 ---
@@ -237,7 +227,7 @@ PORT=8787 ADMIN_PASSWORD="<your-password>" node test/structured-feedback.cjs
 ```
 worker.js                 Worker + Durable Object game engine
 wrangler.jsonc            Cloudflare configuration
-public/                   Home, admin, student and review pages
+public/                   Home, admin and student pages
 assets/                   Animated README GIFs
 questions.json            Starting question set
 tools/                    GIF generator

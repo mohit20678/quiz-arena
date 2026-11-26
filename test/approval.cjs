@@ -41,6 +41,7 @@ function client(path, cookie) {
     body: JSON.stringify({ email: 'mohithedau1@gmail.com', password: PASSWORD }),
   });
   const cookie = login.headers.get('set-cookie').split(';')[0];
+  await fetch(`${HTTP}/api/admin/clear-data`, { method: 'POST', headers: { Cookie: cookie } });
   const admin = client('/ws/admin', cookie);
   const student = client('/ws/student');
   await Promise.all([admin.ready, student.ready]);
@@ -53,7 +54,7 @@ function client(path, cookie) {
   student.send({ type: 'away' });
   await student.next((m) => m.type === 'error' && m.code === 'away');
   const pending = await admin.state((s) => s.pending && s.pending.length >= 1);
-  assert.strictEqual(pending.pending[0].name, 'Approve Test', 'admin sees kicked student');
+  assert(pending.pending.some((x) => x.name === 'Approve Test'), 'admin sees kicked student');
 
   admin.send({ type: 'approve_all' });
   await admin.state((s) => s.pending.length === 0);
