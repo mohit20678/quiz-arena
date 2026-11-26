@@ -107,9 +107,13 @@ A normal website needs a computer running all the time. If that computer sleeps,
 
 The teacher can change *any* question from the Admin panel — type, text, options, correct answer and time.
 
+Current timers: questions 1–5 = **20 s each**, questions 6–7 = **30 s each**, questions 8–9 = **60 s each**, question 10 = **120 s**.
+
+A round ends automatically when **everyone answers** or when its **timer expires**. The ranking is shown for **5 seconds**, then the next question starts by itself — no manual clicking needed.
+
 | Type | What the student sees | How it is marked |
 |---|---|---|
-| **MCQ** | Four options, 30-second timer | Exact correct option |
+| **MCQ** | Four options, editable timer (currently 20 seconds each) | Exact correct option |
 | **Short answer** | A text box, teacher-set minutes | Accepted keyword alternatives |
 | **Essay** | A larger text box, teacher-set minutes | Accepted keyword alternatives |
 | **Paragraph + written** | A passage + text box | All required keywords must appear |
@@ -131,6 +135,7 @@ Propagation|growth stage|chain grows
 - A second admin tab is signed out — the HDMI screen stays under your control.
 - A student opening a second tab is signed out on **both** tabs. Two times means that place is permanently blocked.
 - Switching to another tab or window signs the student out immediately. Again, the first time leaves one rejoin chance; the second time blocks that place permanently.
+- When a student is kicked out, a **pop-up appears on the admin screen** with that student's name, roll number and reason. The admin can **Allow** them individually or **Allow all** at once.
 - One roll number can only be joined from **one device** at a time — a second device is refused even with a different browser token.
 - A teacher can remove any student mid-quiz; that student sees a clear message and cannot rejoin.
 - Correct answers and scores are withheld from students until the end.
@@ -142,13 +147,21 @@ Propagation|growth stage|chain grows
 
 ## 💬 Feedback & 📊 Review
 
-When a student leaves, a small form asks for a **1–5 rating** and a comment.
+When the quiz ends, every student automatically sees a review form asking:
+- how they liked the **website** (1–5)
+- how the **games** were (1–5)
+- how the **questions** were (1–5)
+- whether they faced a **technical issue** (and details)
+- what we can **improve**
+
+Leaving early also opens a short feedback form. All answers are stored and shown on the Review page.
 
 On a second laptop, open the **Review** page and sign in. It shows:
 
 - every student's answer to every question
 - who answered correctly and how many points they earned
-- all feedback
+- all feedback including the three ratings, technical-issue details and suggestions
+- students waiting for admin approval after being kicked out
 - **Download answers (Excel CSV)** and **Download feedback (Excel CSV)**
 
 The Review page is read-only, so it does not interfere with the teacher's single admin tab.
@@ -212,6 +225,9 @@ PORT=8787 ADMIN_PASSWORD="<your-password>" node test/feedback-review.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/remove.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/away.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/duplicate.cjs
+PORT=8787 ADMIN_PASSWORD="<your-password>" node test/approval.cjs
+PORT=8787 ADMIN_PASSWORD="<your-password>" node test/autoadvance.cjs
+PORT=8787 ADMIN_PASSWORD="<your-password>" node test/structured-feedback.cjs
 ```
 
 ---

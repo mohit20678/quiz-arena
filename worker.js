@@ -64,8 +64,10 @@ function validateQuestionSet(raw) {
   return raw.map((q, i) => {
     const type = String(q.type || 'mcq');
     const label = `question ${i + 1}`;
-    // MCQs are always 30 seconds. Written questions can be set in minutes by the admin.
-    const seconds = type === 'mcq' ? 30 : Math.min(1800, Math.max(5, Number(q.seconds) || 120));
+    // MCQs use seconds (default 20); written questions can be set in minutes by the admin.
+    const seconds = type === 'mcq'
+      ? Math.min(300, Math.max(5, Number(q.seconds) || 20))
+      : Math.min(1800, Math.max(5, Number(q.seconds) || 120));
     if (!['mcq', 'short', 'essay', 'paragraph'].includes(type)) throw new Error(`${label}: unknown type`);
     const passage = type === 'paragraph' ? String(q.passage || '').trim() : '';
     if (type === 'paragraph' && !passage) throw new Error(`${label}: paragraph needs a passage`);
@@ -118,8 +120,8 @@ export class QuizRoom extends DurableObject {
     this.ready = false;
     this.g = {
       phase: 'idle', questions: [], currentIndex: -1, answers: new Map(), players: new Map(),
-      roundDuration: 30, endsAt: 0, roundStartedAt: 0, undo: null,
-      rate: new Map(), history: [], feedback: [],
+      roundDuration: 20, endsAt: 0, autoAdvanceAt: 0, roundStartedAt: 0, undo: null,
+      rate: new Map(), history: [], feedback: [], pending: [],
     };
   }
 
@@ -186,6 +188,7 @@ export class QuizRoom extends DurableObject {
         questions: this.g.questions,
         history: this.g.history,
         feedback: this.g.feedback,
+        pending: this.g.pending,
       });
     }
 
@@ -206,6 +209,7 @@ export class QuizRoom extends DurableObject {
         existing.rejoins = (existing.rejoins || 0) + 1;
         const banned = existing.rejoins >= 2;
         if (banned) existing.banned = true;
+        this.flagPending(existing, 'second tab');
         this.send(existing.ws, { type: 'error', code: banned ? 'blocked' : 'second_tab', message: banned ? 'This place was opened in a second tab too many times. It is now blocked.' : 'Another tab opened this quiz. This tab has been signed out.' });
         this.send(server, { type: 'error', code: banned ? 'blocked' : 'second_tab', message: banned ? 'You used both chances. This place is now blocked.' : 'You opened this quiz in a second tab. This tab has been signed out. You have one more chance.' });
         try { existing.ws.close(4003, 'second tab'); } catch (_) {}
@@ -309,7 +313,7 @@ export class QuizRoom extends DurableObject {
     const state = {
       phase: this.g.phase, round: this.g.currentIndex + 1, totalRounds: this.g.questions.length,
       duration: this.g.roundDuration, playerCount: this.connected().length,
-      answeredCount: this.g.answers.size, me,
+      answeredCount: this.g.answers.size, autoAdvanceAt: this.g.autoAdvanceAt, me,
     };
     if (live && q) state.question = this.projectedQuestion(q);
     if (this.g.phase === 'question') {
@@ -335,7 +339,9 @@ export class QuizRoom extends DurableObject {
       availableQuestions: this.g.questions.length,
       endsAt: this.g.phase === 'question' ? this.g.endsAt : 0,
       answeredCount: this.g.answers.size, onlineCount: this.connected().length,
+      autoAdvanceAt: this.g.autoAdvanceAt,
       canUndo: this.g.phase === 'roundEnd' && !!this.g.undo,
+      pending: this.g.pending,
       players: board.map((p) => ({
         ...p, connected: this.g.players.get(p.id)?.connected || false,
         answered: this.g.answers.has(p.id),
@@ -378,6 +384,9 @@ export class QuizRoom extends DurableObject {
     this.ctx.storage.put('history', this.g.history).catch(() => {});
     this.clearTimer();
     this.g.phase = 'roundEnd';
+    // Ranking is shown for 5 seconds, then the next question starts automatically.
+    this.g.autoAdvanceAt = Date.now() + 5000;
+    this.ctx.storage.setAlarm(this.g.autoAdvanceAt);
     this.broadcast();
   }
 
@@ -399,6 +408,7 @@ export class QuizRoom extends DurableObject {
     this.g.phase = 'question';
     this.g.roundStartedAt = Date.now();
     this.g.endsAt = this.g.roundStartedAt + this.g.roundDuration * 1000;
+    this.g.autoAdvanceAt = 0;
     this.g.undo = null;
     this.clearTimer();
     this.ctx.storage.setAlarm(this.g.endsAt);
@@ -419,6 +429,7 @@ export class QuizRoom extends DurableObject {
     this.g.roundDuration = this.g.questions[this.g.currentIndex]?.seconds || 30;
     this.g.roundStartedAt = Date.now();
     this.g.endsAt = this.g.roundStartedAt + this.g.roundDuration * 1000;
+    this.g.autoAdvanceAt = 0;
     this.clearTimer();
     this.ctx.storage.setAlarm(this.g.endsAt);
     this.broadcast();
@@ -457,7 +468,10 @@ export class QuizRoom extends DurableObject {
     this.broadcast();
   }
 
-  alarm() { if (this.g.phase === 'question') this.endRound(); }
+  alarm() {
+    if (this.g.phase === 'question') this.endRound();
+    else if (this.g.phase === 'roundEnd') this.startRound();
+  }
 
   validatePlayer(msg) {
     const name = String(msg.name ?? '').trim().slice(0, 40);
@@ -466,6 +480,33 @@ export class QuizRoom extends DurableObject {
     if (!name) return 'Please enter your name.';
     if (!rollNumber) return 'Please enter your roll number.';
     return { name, rollNumber, team };
+  }
+
+  flagPending(player, reason) {
+    if (!player || player.removed || player.banned) return;
+    if (!this.g.pending.some((x) => x.id === player.id)) {
+      this.g.pending.push({
+        id: player.id,
+        name: player.name,
+        rollNumber: player.rollNumber,
+        reason,
+        at: Date.now(),
+      });
+    }
+  }
+
+  approvePlayers(id, all) {
+    const list = all ? this.g.pending.slice() : this.g.pending.filter((x) => x.id === id);
+    for (const item of list) {
+      const p = this.g.players.get(item.id);
+      if (p) {
+        p.banned = false;
+        p.removed = false;
+        p.rejoins = 0;
+      }
+    }
+    this.g.pending = this.g.pending.filter((x) => !list.includes(x));
+    this.broadcast();
   }
 
   onClose(ws) {
@@ -500,6 +541,7 @@ export class QuizRoom extends DurableObject {
             p.rejoins = (p.rejoins || 0) + 1;
             const banned = p.rejoins >= 2;
             if (banned) p.banned = true;
+            this.flagPending(p, 'second tab');
             this.send(p.ws, { type: 'error', code: banned ? 'blocked' : 'second_tab', message: 'Another tab opened this quiz. This tab has been signed out.' });
             this.send(ws, { type: 'error', code: banned ? 'blocked' : 'second_tab', message: banned ? 'You used both chances. This place is now blocked.' : 'You opened this quiz in a second tab. This tab has been signed out. You have one more chance.' });
             try { p.ws.close(4003, 'second tab'); } catch (_) {}
@@ -579,6 +621,8 @@ export class QuizRoom extends DurableObject {
         answer.timeMs = timeMs;
         this.g.answers.set(p.id, answer);
         this.broadcastAnswerUpdate(p.id);
+        const active = this.connected();
+        if (active.length > 0 && active.every((t) => this.g.answers.has(t.id))) this.endRound();
         break;
       }
 
@@ -587,6 +631,12 @@ export class QuizRoom extends DurableObject {
       case 'end_round': if (meta.role === 'admin') this.endRound(); break;
       case 'undo_round': if (meta.role === 'admin') this.undoRound(); break;
       case 'reset_game': if (meta.role === 'admin') this.resetGame(); break;
+      case 'approve_player':
+        if (meta.role === 'admin') this.approvePlayers(String(msg.id || ''), false);
+        break;
+      case 'approve_all':
+        if (meta.role === 'admin') this.approvePlayers('', true);
+        break;
       case 'away': {
         if (meta.role !== 'student') return;
         const p = this.g.players.get(meta.id);
@@ -594,6 +644,7 @@ export class QuizRoom extends DurableObject {
         p.rejoins = (p.rejoins || 0) + 1;
         const banned = p.rejoins >= 2;
         if (banned) p.banned = true;
+        this.flagPending(p, 'left quiz tab');
         this.send(ws, {
           type: 'error',
           code: banned ? 'blocked' : 'away',
@@ -618,6 +669,7 @@ export class QuizRoom extends DurableObject {
         const target = this.g.players.get(String(msg.id || ''));
         if (!target) return;
         target.removed = true;
+        this.flagPending(target, 'removed by admin');
         target.connected = false;
         if (target.ws) {
           this.send(target.ws, { type: 'error', code: 'removed', message: 'The admin removed you from this quiz.' });
@@ -637,12 +689,19 @@ export class QuizRoom extends DurableObject {
       case 'feedback': {
         if (meta.role !== 'student') return;
         const p = this.g.players.get(meta.id);
-        const rating = Math.min(5, Math.max(1, Number(msg.rating) || 0));
-        const comment = String(msg.comment || '').trim().slice(0, 1000);
-        if (!rating) return this.send(ws, { type: 'error', message: 'Please choose a rating.' });
+        const rate = (v) => Math.min(5, Math.max(1, Number(v) || 0));
+        const rating = rate(msg.website || msg.rating);
+        const website = rating;
+        const games = rate(msg.games);
+        const questions = rate(msg.questions);
+        const issue = String(msg.issue || '').trim().slice(0, 3);
+        const issueDetails = String(msg.issueDetails || '').trim().slice(0, 1000);
+        const improve = String(msg.improve || msg.comment || '').trim().slice(0, 1000);
+        if (!website) return this.send(ws, { type: 'error', message: 'Please choose a rating for the website.' });
         this.g.feedback.push({
           name: p?.name || '', rollNumber: p?.rollNumber || '', team: p?.team || '',
-          rating, comment, at: Date.now(),
+          rating, website, games, questions, issue, issueDetails, improve,
+          comment: improve, at: Date.now(),
         });
         this.ctx.storage.put('feedback', this.g.feedback).catch(() => {});
         this.send(ws, { type: 'feedback_saved' });
@@ -691,7 +750,7 @@ export default {
     }
 
     // A fresh room name guarantees all clients run the newest game rules after an upgrade.
-    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v2'));
+    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v3'));
 
     if (path === '/health') return withSecurity(await stub.fetch(new Request(url, { headers: request.headers })));
 

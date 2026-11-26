@@ -16,6 +16,9 @@ let lastQuestionKey = '';
 let confettiDone = false;
 let autoJoinAttempted = false;
 let lockedScreen = false;
+let reviewDone = false;
+let reviewRatings = { website: 0, games: 0, questions: 0 };
+let reviewIssue = '';
 
 const socketPath = myToken
   ? `/ws/student?token=${encodeURIComponent(myToken)}`
@@ -58,6 +61,11 @@ function handleMessage(msg) {
       render();
       break;
 
+    case 'feedback_saved':
+      showToast('Thank you for your review!', 'success');
+      showScreen('gameEndScreen');
+      break;
+
     case 'error':
       if (msg.code === 'away') {
         lockedScreen = true;
@@ -70,7 +78,6 @@ function handleMessage(msg) {
       } else if (msg.code === 'removed') {
         lockedScreen = true;
         net.stopped = true;
-        localStorage.removeItem(STORAGE_KEY);
         showScreen('removedScreen');
       } else if (msg.code === 'second_tab') {
         lockedScreen = true;
@@ -79,7 +86,6 @@ function handleMessage(msg) {
       } else if (msg.code === 'blocked') {
         lockedScreen = true;
         net.stopped = true;
-        localStorage.removeItem(STORAGE_KEY);
         showScreen('blockedScreen');
       } else {
         showToast(msg.message, 'error');
@@ -90,6 +96,7 @@ function handleMessage(msg) {
       state = null;
       lastQuestionKey = '';
       confettiDone = false;
+      reviewDone = false;
       autoJoinAttempted = false;
       if (saved?.name) {
         doJoin(); // same token reuses the same player
@@ -284,6 +291,10 @@ function renderGameEnd() {
     launchConfetti($('#confettiHost'));
     confettiDone = true;
   }
+  if (!reviewDone) {
+    reviewDone = true;
+    showScreen('studentReviewScreen');
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -333,6 +344,37 @@ watchSecondTabs('quiz-arena-student-tabs', () => {
   if (net) net.stopped = true;
   showScreen('secondTabScreen');
 });
+
+$$('.review-rating').forEach((group) => {
+  const key = group.dataset.key;
+  $$('button', group).forEach((btn) => btn.addEventListener('click', () => {
+    reviewRatings[key] = Number(btn.dataset.rate);
+    $$('button', group).forEach((b) => b.classList.toggle('selected', b === btn));
+  }));
+});
+
+$$('.choice-btn').forEach((btn) => btn.addEventListener('click', () => {
+  reviewIssue = btn.dataset.issue;
+  $$('.choice-btn').forEach((b) => b.classList.toggle('selected', b === btn));
+}));
+
+$('#submitReview').addEventListener('click', () => {
+  if (!reviewRatings.website || !reviewRatings.games || !reviewRatings.questions) {
+    return showToast('Please rate the website, games and questions.');
+  }
+  if (!reviewIssue) return showToast('Please tell us whether you had a technical issue.');
+  net.send({
+    type: 'feedback',
+    website: reviewRatings.website,
+    games: reviewRatings.games,
+    questions: reviewRatings.questions,
+    issue: reviewIssue,
+    issueDetails: $('#reviewIssueDetails').value,
+    improve: $('#reviewImprove').value,
+  });
+});
+
+$('#backToResults').addEventListener('click', () => showScreen('gameEndScreen'));
 
 let awayReported = false;
 

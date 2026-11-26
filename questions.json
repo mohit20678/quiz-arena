@@ -1,7 +1,7 @@
 [
   {
     "type": "mcq",
-    "seconds": 30,
+    "seconds": 20,
     "text": "Which is a semi-synthetic polymer?",
     "options": [
       "Natural rubber",
@@ -13,7 +13,7 @@
   },
   {
     "type": "mcq",
-    "seconds": 30,
+    "seconds": 20,
     "text": "Which tacticity has substituent groups alternating on either side of the chain?",
     "options": [
       "Isotactic",
@@ -25,7 +25,7 @@
   },
   {
     "type": "mcq",
-    "seconds": 30,
+    "seconds": 20,
     "text": "Which monomer is used to prepare PVC?",
     "options": [
       "Styrene",
@@ -37,7 +37,7 @@
   },
   {
     "type": "mcq",
-    "seconds": 30,
+    "seconds": 20,
     "text": "Which property makes Buna-S suitable for automobile tyres?",
     "options": [
       "Abrasion resistance",
@@ -49,7 +49,7 @@
   },
   {
     "type": "mcq",
-    "seconds": 30,
+    "seconds": 20,
     "text": "Which is a biodegradable polymer?",
     "options": [
       "PVC",
@@ -61,7 +61,7 @@
   },
   {
     "type": "short",
-    "seconds": 120,
+    "seconds": 30,
     "text": "Buna-S rubber — Name the two monomers used in its preparation.",
     "method": "written",
     "keywords": [
@@ -73,7 +73,7 @@
   },
   {
     "type": "short",
-    "seconds": 120,
+    "seconds": 30,
     "text": "Conducting polymers — Name the two types based on the origin of electrical conductivity.",
     "method": "written",
     "keywords": [
@@ -84,7 +84,7 @@
   },
   {
     "type": "paragraph",
-    "seconds": 120,
+    "seconds": 60,
     "text": "Write the answers to all five parts (a–e) above.",
     "passage": "Q8. Addition and condensation polymerization\na) Other name for addition polymerization?\nb) First stage of free radical addition polymerization?\nc) Stage in which the polymer chain grows?\nd) Stage in which chain growth stops?\ne) Other name for condensation polymerization in the notes?",
     "method": "written",
@@ -99,7 +99,7 @@
   },
   {
     "type": "paragraph",
-    "seconds": 120,
+    "seconds": 60,
     "text": "Write the answers to all five parts (a–e) above.",
     "passage": "Q9. Electrical conduction in polyacetylene\na) Double-bond arrangement responsible for electron delocalization?\nb) Doping that creates positive sites?\nc) Doping that creates negative sites?\nd) Process involving removal of electrons?\ne) Process involving addition of electrons?",
     "method": "written",

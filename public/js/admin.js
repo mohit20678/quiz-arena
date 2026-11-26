@@ -180,7 +180,10 @@ function editorHTML(q, i) {
         </select>
       </div>
       ${q.type === 'mcq'
-        ? `<div class="field"><label>Time for this question</label><div class="pill">30 seconds (fixed for MCQs)</div></div>`
+        ? `<div class="field">
+            <label>Time for this question <span class="hint">· seconds, 5–300 (default 20)</span></label>
+            <input class="input q-seconds" type="number" min="5" max="300" step="1" value="${Number(q.seconds) || 20}">
+          </div>`
         : `<div class="field">
             <label>Time for this question <span class="hint">· minutes, 1–30 (default 2)</span></label>
             <input class="input q-seconds" type="number" min="1" max="30" step="1" value="${Math.round((Number(q.seconds) || 120) / 60)}">
@@ -280,7 +283,8 @@ function wireEditor(i) {
   if (requireAll) requireAll.addEventListener('change', () => { q.requireAll = requireAll.checked; });
   const seconds = $('.q-seconds', card);
   if (seconds) seconds.addEventListener('input', () => {
-    q.seconds = Math.min(30, Math.max(1, Number(seconds.value) || 2)) * 60;
+    if (q.type === 'mcq') q.seconds = Math.min(300, Math.max(5, Number(seconds.value) || 20));
+    else q.seconds = Math.min(30, Math.max(1, Number(seconds.value) || 2)) * 60;
   });
 
   const method = $('.q-method', card);
@@ -365,6 +369,29 @@ async function saveQuestions() {
 /* Live views                                                          */
 /* ------------------------------------------------------------------ */
 
+function renderPending(pending) {
+  const panel = $('#pendingPanel');
+  if (!panel) return;
+  if (!pending.length) { panel.hidden = true; panel.innerHTML = ''; return; }
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="pending-head">
+      <span class="pending-icon">⚠️</span>
+      <div><strong>${pending.length} student${pending.length === 1 ? '' : 's'} kicked out</strong>
+      <div class="tiny muted">Allow them back into the quiz?</div></div>
+    </div>
+    ${pending.map((p) => `
+      <div class="pending-row">
+        <span class="p-meta"><strong>${escapeHTML(p.name)}</strong><small>Roll ${escapeHTML(p.rollNumber)} · ${escapeHTML(p.reason)}</small></span>
+        <button class="btn btn-sm btn-primary approve-one" data-id="${p.id}">Allow</button>
+      </div>`).join('')}
+    <button class="btn btn-sm btn-block btn-cyan" id="approveAll">Allow all (${pending.length})</button>`;
+  $$('.approve-one', panel).forEach((btn) => btn.addEventListener('click', () => {
+    net.send({ type: 'approve_player', id: btn.dataset.id });
+  }));
+  $('#approveAll', panel).addEventListener('click', () => net.send({ type: 'approve_all' }));
+}
+
 function renderLive(state) {
   currentState = state;
   if (state.phase === 'idle') {
@@ -383,6 +410,8 @@ function renderLive(state) {
     <span class="status-chip">Students <b>${state.onlineCount}</b></span>
     ${state.phase === 'question' ? `<span class="status-chip">Answered <b>${state.answeredCount} / ${state.onlineCount}</b></span>` : ''}
   `;
+
+  renderPending(state.pending || []);
 
   switch (state.phase) {
     case 'lobby': renderLobbyPanel(state); break;
@@ -481,7 +510,7 @@ function renderQuestionPanel(state) {
         <div class="admin-question">${escapeHTML(q.text || (q.subs?.[0]?.text || 'Passage questions'))}</div>
         ${passageHTML(q)}
         <div class="admin-options">${plainOptionsHTML(q)}</div>
-        <p class="tiny muted">This round ends only when you press the button below (or when the timer runs out).</p>
+        <p class="tiny muted">The round ends automatically when everyone answers or when the timer expires. The ranking shows for 5 seconds, then the next question starts by itself.</p>
         <div class="admin-actions"><button class="btn btn-ghost" id="adminEndRound">End round now</button></div>
       </div>
       <div class="card">

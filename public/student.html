@@ -91,6 +91,61 @@
       </div>
     </section>
 
+    <!-- ============ POST-QUIZ REVIEW ============ -->
+    <section class="screen" id="studentReviewScreen">
+      <div class="card">
+        <div class="hero-icon" style="margin-bottom:16px">⭐</div>
+        <div class="eyebrow" style="justify-content:center">Quiz finished</div>
+        <h2 class="center">Tell us how it went</h2>
+        <p class="tiny muted center">Your answers help us make the next quiz better.</p>
+
+        <div class="review-grid">
+          <div class="field">
+            <label>How did you like the website? <span class="hint">· 1–5</span></label>
+            <div class="rating-row review-rating" data-key="website">
+              <button type="button" data-rate="1">1</button><button type="button" data-rate="2">2</button>
+              <button type="button" data-rate="3">3</button><button type="button" data-rate="4">4</button>
+              <button type="button" data-rate="5">5</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>How were the games? <span class="hint">· 1–5</span></label>
+            <div class="rating-row review-rating" data-key="games">
+              <button type="button" data-rate="1">1</button><button type="button" data-rate="2">2</button>
+              <button type="button" data-rate="3">3</button><button type="button" data-rate="4">4</button>
+              <button type="button" data-rate="5">5</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>How were the questions? <span class="hint">· 1–5</span></label>
+            <div class="rating-row review-rating" data-key="questions">
+              <button type="button" data-rate="1">1</button><button type="button" data-rate="2">2</button>
+              <button type="button" data-rate="3">3</button><button type="button" data-rate="4">4</button>
+              <button type="button" data-rate="5">5</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:14px">
+          <label>Did you face any technical issue?</label>
+          <div class="choice-row">
+            <button type="button" class="choice-btn" data-issue="No">No</button>
+            <button type="button" class="choice-btn" data-issue="Yes">Yes</button>
+          </div>
+          <textarea class="input" id="reviewIssueDetails" rows="2" maxlength="1000" placeholder="If yes, what happened?"></textarea>
+        </div>
+        <div class="field">
+          <label>What can we improve?</label>
+          <textarea class="input" id="reviewImprove" rows="3" maxlength="1000" placeholder="Your suggestions…"></textarea>
+        </div>
+
+        <div class="admin-actions" style="justify-content:center">
+          <button class="btn btn-primary" id="submitReview">Submit review</button>
+          <button class="btn btn-ghost btn-sm" id="backToResults">Back to results</button>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ FEEDBACK ============ -->
     <section class="screen" id="feedbackScreen">
       <div class="card lobby-card">
@@ -163,7 +218,7 @@
         </div>
         <div class="submit-wrap">
           <button class="btn btn-primary btn-lg" id="submitAnswer" disabled>Submit answer</button>
-          <span class="locked-note" id="lockedNote" hidden>✓ Answer submitted — wait for the admin to proceed<span class="wait-dots"><i></i><i></i><i></i></span></span>
+          <span class="locked-note" id="lockedNote" hidden>✓ Answer submitted — waiting for the next question<span class="wait-dots"><i></i><i></i><i></i></span></span>
         </div>
       </div>
     </section>

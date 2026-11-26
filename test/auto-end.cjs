@@ -73,17 +73,16 @@ function client(path, cookie) {
   a.send({ type: 'answer', optionIndex: 0 });
   b.send({ type: 'answer', optionIndex: 1 });
 
-  // The round must stay open until the admin ends it.
-  const adminView = await admin.state((s) => s.phase === 'question' && s.answeredCount === 2, 4000);
-  assert(adminView, 'admin sees both answers while the round is still open');
+  // When everyone answers, the round ends by itself.
+  const adminView = await admin.state((s) => s.phase === 'roundEnd' && s.answeredCount === 2, 4000);
+  assert(adminView, 'round auto-ended when both students answered');
   assert.strictEqual(adminView.players.find((p) => p.name === 'One').answered, true);
   assert.strictEqual(adminView.players.find((p) => p.name === 'Two').answered, true);
   assert.strictEqual(adminView.players.every((p) => p.answer === undefined), true,
     'admin does not receive the chosen option');
 
-  admin.send({ type: 'end_round' });
   const ended = await a.state((s) => s.phase === 'roundEnd', 4000);
-  assert.strictEqual(ended.round, 1, 'admin ended the round');
+  assert.strictEqual(ended.round, 1, 'round 1 ended');
   assert(ended.leaderboard && ended.leaderboard.length === 2, 'ranking is shown to students');
   assert.strictEqual(ended.leaderboard[0].correct, undefined, 'ranking hides correctness');
   assert(ended.leaderboard[0].score !== undefined, 'ranking shows points');
@@ -102,7 +101,7 @@ function client(path, cookie) {
   assert.strictEqual(restored.players.every((p) => p.score === 0), true, 'undo restores scores');
   assert.strictEqual(restored.canUndo, false, 'undo no longer offered after restoring');
 
-  console.log('PASS: admin-controlled round, ranking, chosen options, hidden answer, and undo.');
+  console.log('PASS: auto-end on all answered, ranking, hidden answer, and undo.');
   console.log(`First question type: ${question.question.type}`);
   admin.close(); a.close(); b.close();
   process.exit(0);

@@ -62,8 +62,12 @@ function render() {
 
   $('#feedbackList').innerHTML = feedback.length ? feedback.map((f) => `
     <div class="readonly-q">
-      <div class="q-text-line"><span class="q-num">★ ${f.rating}/5</span><strong>${escapeHTML(f.name)}</strong> <small class="muted">${escapeHTML(f.rollNumber)}</small></div>
-      <div class="tiny" style="margin-top:6px">${escapeHTML(f.comment || 'No comment')}</div>
+      <div class="q-text-line"><strong>${escapeHTML(f.name)}</strong> <small class="muted">${escapeHTML(f.rollNumber)}</small></div>
+      <div class="tiny" style="margin-top:6px">
+        Website ★${f.website || f.rating || '–'}/5 · Games ★${f.games || '–'}/5 · Questions ★${f.questions || '–'}/5 · Issue: ${escapeHTML(f.issue || 'Not answered')}
+      </div>
+      ${f.issueDetails ? `<div class="tiny muted" style="margin-top:4px">Issue: ${escapeHTML(f.issueDetails)}</div>` : ''}
+      ${f.improve || f.comment ? `<div class="tiny" style="margin-top:6px">Improve: ${escapeHTML(f.improve || f.comment)}</div>` : ''}
     </div>`).join('') : '<div class="empty">No feedback yet.</div>';
 }
 
@@ -81,9 +85,16 @@ function downloadAnswers() {
 }
 
 function downloadFeedback() {
-  const rows = [['Student', 'Roll number', 'Team', 'Rating', 'Comment', 'Time']];
+  const rows = [[
+    'Student', 'Roll number', 'Team', 'Website rating', 'Games rating', 'Questions rating',
+    'Technical issue', 'Issue details', 'Improvements', 'Time',
+  ]];
   for (const f of reviewData.feedback) {
-    rows.push([f.name, f.rollNumber, f.team || '', f.rating, f.comment || '', new Date(f.at).toLocaleString()]);
+    rows.push([
+      f.name, f.rollNumber, f.team || '', f.website || f.rating || '', f.games || '',
+      f.questions || '', f.issue || '', f.issueDetails || '', f.improve || f.comment || '',
+      new Date(f.at).toLocaleString(),
+    ]);
   }
   downloadCSV('quiz-arena-feedback.csv', rows);
 }
