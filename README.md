@@ -157,7 +157,9 @@ When the quiz ends, every student automatically sees a review form asking:
 
 Leaving early also opens a short feedback form. All answers are stored and shown on the Review page.
 
-There is no separate browser review page. Feedback is stored on Cloudflare after the quiz. The admin panel shows a **Select all** box for students waiting to rejoin, with bulk **Allow selected** and **Deny selected** buttons so a large crowd can be handled at once.
+There is no separate browser review page. Feedback is stored on Cloudflare after the quiz. In the admin header, press **⬇ Download feedback** to get **one Excel-compatible CSV** containing every student's ratings, technical-issue details and suggestions. Send that file to the developer when you want improvements made.
+
+The admin panel also shows a **Select all** box for students waiting to rejoin, with bulk **Allow selected** and **Deny selected** buttons so a large crowd can be handled at once.
 
 ---
 

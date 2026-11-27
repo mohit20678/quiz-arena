@@ -856,6 +856,10 @@ export class QuizRoom extends DurableObject {
 /* Worker — static assets, login/session APIs, WebSocket routing        */
 /* ------------------------------------------------------------------ */
 
+function csvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
@@ -948,6 +952,32 @@ export default {
       if (!(await isAuthorized(request, env))) return withSecurity(json({ error: 'Not authorized.' }, 401));
       const target = new Request('https://quiz/answers', { headers: request.headers });
       return withSecurity(await stub.fetch(target));
+    }
+
+    if (path === '/api/admin/feedback.csv' && request.method === 'GET') {
+      if (!(await isAuthorized(request, env))) return withSecurity(json({ error: 'Not authorized.' }, 401));
+      const response = await stub.fetch(new Request('https://quiz/answers'));
+      const data = await response.json();
+      const rows = [[
+        'Student', 'Roll number', 'Team', 'Website rating', 'Games rating', 'Questions rating',
+        'Technical issue', 'Issue details', 'Improvements', 'Submitted at',
+      ]];
+      for (const f of data.feedback || []) {
+        rows.push([
+          f.name, f.rollNumber, f.team || '', f.website || f.rating || '', f.games || '',
+          f.questions || '', f.issue || '', f.issueDetails || '', f.improve || f.comment || '',
+          f.at ? new Date(f.at).toISOString() : '',
+        ]);
+      }
+      const csv = '\ufeff' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n');
+      return withSecurity(new Response(csv, {
+        status: 200,
+        headers: {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition': 'attachment; filename="quiz-arena-feedback.csv"',
+          'cache-control': 'no-store',
+        },
+      }));
     }
 
     if (path.startsWith('/ws/')) {

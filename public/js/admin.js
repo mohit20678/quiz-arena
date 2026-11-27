@@ -634,6 +634,23 @@ $('#loginForm').addEventListener('submit', (event) => {
   login(email, password);
 });
 
+$('#downloadFeedback').addEventListener('click', async () => {
+  try {
+    const response = await fetch('/api/admin/feedback.csv');
+    if (!response.ok) throw new Error('Could not download feedback.');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'quiz-arena-feedback.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Feedback Excel file downloaded.', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
 $('#logoutButton').addEventListener('click', logout);
 
 $('#addQuestion').addEventListener('click', () => {
