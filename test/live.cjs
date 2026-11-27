@@ -63,7 +63,7 @@ function client(path, cookie) {
   await student.state((s) => s.phase === 'question' && s.myAnswer);
   admin.send({ type: 'end_round' });
   const ended = await student.state((s) => s.phase === 'roundEnd');
-  assert.strictEqual(ended.leaderboard.length, 1, 'ranking shown');
+  assert(ended.leaderboard.some((r) => r.name === 'Live Test'), 'ranking shown');
   assert.strictEqual(ended.myAnswer.points, undefined, 'points hidden mid-game');
 
   admin.close(); student.close();

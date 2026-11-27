@@ -36,6 +36,7 @@ function client(path) {
     body: JSON.stringify({ email: 'mohithedau1@gmail.com', password: process.env.ADMIN_PASSWORD }),
   });
   const cookie = login.headers.get('set-cookie').split(';')[0];
+  await fetch(`${HTTP}/api/admin/clear-data`, { method: 'POST', headers: { Cookie: cookie } });
   const student = client('/ws/student');
   await student.ready;
   student.send({ type: 'join', name: 'Review Test', rollNumber: 'RV1' });

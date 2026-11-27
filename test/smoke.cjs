@@ -98,6 +98,7 @@ function wrongAnswer(question) {
   const login = await response.json();
   assert(response.ok && login.ok, 'admin login should succeed');
   const cookie = response.headers.get('set-cookie').split(';')[0];
+  await fetch(`${HTTP_URL}/api/admin/clear-data`, { method: 'POST', headers: { Cookie: cookie } });
   await fetch(`${HTTP_URL}/api/admin/questions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: cookie },

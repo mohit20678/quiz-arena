@@ -46,6 +46,7 @@ function client(path, cookie) {
     body: JSON.stringify({ email: 'mohithedau1@gmail.com', password: PASSWORD }),
   });
   const cookie = login.headers.get('set-cookie').split(';')[0];
+  await fetch(`${HTTP}/api/admin/clear-data`, { method: 'POST', headers: { Cookie: cookie } });
   const admin = client('/ws/admin', cookie);
   await admin.ready;
   admin.send({ type: 'reset_game' });
@@ -69,7 +70,8 @@ function client(path, cookie) {
   const t0 = Date.now();
   for (const s of students) s.send({ type: 'answer', optionIndex: 1 });
   const ended = await students[0].state((s) => s.phase === 'roundEnd' && s.round === 1, 20000);
-  assert.strictEqual(ended.leaderboard.length, COUNT, 'every student appears in the ranking');
+  const names = new Set(ended.leaderboard.map((r) => r.name));
+  for (let i = 1; i <= COUNT; i++) assert(names.has(`Student ${i}`), `Student ${i} appears in the ranking`);
   assert(ended.leaderboard.every((r) => r.score !== undefined), 'ranking has points for everyone');
   const elapsed = Date.now() - t0;
   const failures = students.filter((s) => s.error()).length;

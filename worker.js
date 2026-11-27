@@ -179,11 +179,41 @@ export class QuizRoom extends DurableObject {
       this.g.feedback = [];
       this.g.pending = [];
       this.g.events = [];
+      this.g.players.clear();
+      for (const [ws, meta] of this.sockets) {
+        try { ws.close(4000, 'reset'); } catch (_) { /* ignore */ }
+        meta.id = null;
+      }
+      this.sockets.clear();
+      this.adminWs = null;
       await this.ctx.storage.put('history', this.g.history);
       await this.ctx.storage.put('feedback', this.g.feedback);
       await this.ctx.storage.put('pending', this.g.pending);
       this.resetGame();
       return json({ ok: true });
+    }
+
+    if (path === '/rejoin-request' && request.method === 'POST') {
+      let body;
+      try { body = await request.json(); } catch (_) { return json({ error: 'Invalid request.' }, 400); }
+      const token = String(body.token || '');
+      const player = token
+        ? [...this.g.players.values()].find((p) => p.token === token)
+        : [...this.g.players.values()].find((p) => p.rollNumber === String(body.rollNumber || ''));
+      if (!player) return json({ error: 'We could not find your details. Please join again.' }, 404);
+      player.name = String(body.name || player.name).slice(0, 40) || player.name;
+      player.rollNumber = String(body.rollNumber || player.rollNumber).slice(0, 30) || player.rollNumber;
+      await this.flagPending(player, 'rejoin request');
+      return json({ ok: true });
+    }
+
+    if (path === '/rejoin-status' && request.method === 'GET') {
+      const token = new URL(request.url).searchParams.get('token') || '';
+      const player = [...this.g.players.values()].find((p) => p.token === token);
+      if (!player) return json({ status: 'none' });
+      if (player.banned || player.removed || player.denied) return json({ status: 'blocked' });
+      if (this.g.pending.some((x) => x.id === player.id)) return json({ status: 'pending' });
+      return json({ status: 'approved' });
     }
 
     if (path === '/answers' && request.method === 'GET') {
@@ -193,6 +223,7 @@ export class QuizRoom extends DurableObject {
         history: this.g.history,
         feedback: this.g.feedback,
         pending: this.g.pending,
+        events: this.g.events,
       });
     }
 
@@ -530,6 +561,14 @@ export class QuizRoom extends DurableObject {
       this.addEvent(`${player.name} (${player.rollNumber}) left the quiz — ${reason}`, 'warn');
     }
     await this.ctx.storage.put('pending', this.g.pending);
+
+    // Crowd rule: 5 or more waiting means let everyone back automatically.
+    if (this.g.pending.length >= 5) {
+      const count = this.g.pending.length;
+      await this.approvePlayers('', true);
+      this.addEvent(`${count} students were auto-allowed (crowd threshold)`, 'good');
+      await this.ctx.storage.put('pending', this.g.pending);
+    }
   }
 
   async approvePlayers(id, all, ids) {
@@ -843,7 +882,7 @@ export default {
     }
 
     // A fresh room name guarantees all clients run the newest game rules after an upgrade.
-    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v8'));
+    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v13'));
 
     if (path === '/health') return withSecurity(await stub.fetch(new Request(url, { headers: request.headers })));
 
@@ -888,6 +927,21 @@ export default {
     if (path === '/api/admin/clear-data' && request.method === 'POST') {
       if (!(await isAuthorized(request, env))) return withSecurity(json({ error: 'Not authorized.' }, 401));
       return withSecurity(await stub.fetch(new Request('https://quiz/clear-data', { method: 'POST' })));
+    }
+
+    if (path === '/api/rejoin-request' && request.method === 'POST') {
+      let body;
+      try { body = await request.json(); } catch (_) { return withSecurity(json({ error: 'Invalid request.' }, 400)); }
+      const target = new Request('https://quiz/rejoin-request', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      return withSecurity(await stub.fetch(target));
+    }
+
+    if (path === '/api/rejoin-status' && request.method === 'GET') {
+      const token = new URL(request.url).searchParams.get('token') || '';
+      const target = new Request(`https://quiz/rejoin-status?token=${encodeURIComponent(token)}`);
+      return withSecurity(await stub.fetch(target));
     }
 
     if (path === '/api/admin/answers' && request.method === 'GET') {

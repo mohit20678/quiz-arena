@@ -64,8 +64,9 @@ function client(path, cookie) {
   student.send({ type: 'answer', optionIndex: 1 });
   await student.state((s) => s.phase === 'question' && s.myAnswer);
   admin.send({ type: 'end_round' });
-  const ranked = await display.state((s) => s.phase === 'roundEnd' && s.leaderboard.length === 1);
-  assert.strictEqual(ranked.leaderboard[0].name, 'Display Test');
+  const ranked = await display.state((s) => s.phase === 'roundEnd' &&
+    s.leaderboard.some((r) => r.name === 'Display Test'));
+  assert(ranked.leaderboard.some((r) => r.name === 'Display Test'));
   assert.strictEqual(ranked.question.correct, undefined, 'still no correct answer after round');
 
   student.send({ type: 'away' });

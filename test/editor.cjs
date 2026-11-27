@@ -63,6 +63,7 @@ function client(pathname, cookie) {
     });
     assert(login.ok, 'login failed');
     cookie = login.headers.get('set-cookie').split(';')[0];
+    await fetch(`${HTTP}/api/admin/clear-data`, { method: 'POST', headers: { Cookie: cookie } });
 
     const fetched = await (await fetch(`${HTTP}/api/admin/questions`, { headers: { Cookie: cookie } })).json();
     const questions = fetched.questions;

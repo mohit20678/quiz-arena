@@ -41,6 +41,7 @@ function client(path, cookie) {
     body: JSON.stringify({ email: 'mohithedau1@gmail.com', password: PASSWORD }),
   });
   const cookie = login.headers.get('set-cookie').split(';')[0];
+  await fetch(`${HTTP}/api/admin/clear-data`, { method: 'POST', headers: { Cookie: cookie } });
   const cur = await (await fetch(`${HTTP}/api/admin/questions`, { headers: { Cookie: cookie } })).json();
   const q = cur.questions;
   q[7] = {

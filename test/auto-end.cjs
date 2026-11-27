@@ -48,6 +48,7 @@ function client(path, cookie) {
   });
   assert(res.ok, 'login failed');
   const cookie = res.headers.get('set-cookie').split(';')[0];
+  await fetch(`${HTTP}/api/admin/clear-data`, { method: 'POST', headers: { Cookie: cookie } });
   await fetch(`${HTTP}/api/admin/questions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookie },
     body: JSON.stringify({ questions: require('../questions.json') }),

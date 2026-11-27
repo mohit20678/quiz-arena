@@ -135,7 +135,8 @@ Propagation|growth stage|chain grows
 - A second admin tab is signed out — the HDMI screen stays under your control.
 - A student opening a second tab is signed out on **both** tabs. Two times means that place is permanently blocked.
 - Switching to another tab or window signs the student out immediately. Again, the first time leaves one rejoin chance; the second time blocks that place permanently.
-- When a student is kicked out, a **pop-up appears on the admin screen** with that student's name, roll number and reason. The admin can **Allow** them individually or **Allow all** at once.
+- When a student is kicked out, a **pop-up appears on the admin screen** with checkboxes, **Select all**, **Allow selected** and **Deny selected** — a large crowd can be handled in one click.
+- If **5 or more** students are waiting, the server auto-allows everyone and posts an event on the display screen. Rejoin requests use a small HTTP poll, so kicked browsers cannot flood the room with reconnect loops.
 - One roll number can only be joined from **one device** at a time — a second device is refused even with a different browser token.
 - A teacher can remove any student mid-quiz; that student sees a clear message and cannot rejoin.
 - Correct answers and scores are withheld from students until the end.

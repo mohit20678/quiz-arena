@@ -71,7 +71,7 @@ function handleMessage(msg) {
       awaitingApproval = false;
       lockedScreen = false;
       showToast('The admin allowed you back. Rejoining…', 'success');
-      doJoin();
+      location.reload();
       break;
 
     case 'rejoin_requested':
@@ -83,7 +83,10 @@ function handleMessage(msg) {
       if (['away', 'removed', 'second_tab', 'blocked', 'denied'].includes(msg.code)) {
         awaitingApproval = true;
         lockedScreen = true;
+        net.stopped = true;
+        net.close(); // stop auto-reconnect loops that flood the room
         showRejoin(msg.message);
+        pollRejoin();
       } else if (msg.code === 'duplicate') {
         net.stopped = true;
         showScreen('joinScreen');
@@ -386,15 +389,43 @@ function showRejoin(message) {
   showScreen('rejoinScreen');
 }
 
-$('#requestRejoin').addEventListener('click', () => {
-  net.send({
-    type: 'request_rejoin',
-    name: saved?.name || '',
-    rollNumber: saved?.rollNumber || '',
-    token: myToken || null,
-  });
-  $('#rejoinTitle').textContent = 'Request sent';
-  $('#rejoinMessage').textContent = 'Waiting for the admin to allow you back.';
+let rejoinPoll = null;
+
+async function pollRejoin() {
+  if (rejoinPoll) return;
+  rejoinPoll = setInterval(async () => {
+    if (!awaitingApproval || !myToken) return;
+    try {
+      const r = await fetch(`/api/rejoin-status?token=${encodeURIComponent(myToken)}`);
+      const data = await r.json();
+      if (data.status === 'approved') {
+        clearInterval(rejoinPoll);
+        rejoinPoll = null;
+        showToast('The admin allowed you back. Rejoining…', 'success');
+        location.reload();
+      } else if (data.status === 'blocked') {
+        clearInterval(rejoinPoll);
+        rejoinPoll = null;
+        $('#rejoinTitle').textContent = 'Request denied';
+        $('#rejoinMessage').textContent = 'The admin did not allow re-entry. Please ask your teacher.';
+      }
+    } catch (_) { /* keep polling */ }
+  }, 2000);
+}
+
+$('#requestRejoin').addEventListener('click', async () => {
+  try {
+    const r = await fetch('/api/rejoin-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: saved?.name || '', rollNumber: saved?.rollNumber || '', token: myToken || '' }),
+    });
+    const data = await r.json();
+    if (!r.ok) return showToast(data.error || 'Could not send the request.', 'error');
+    $('#rejoinTitle').textContent = 'Request sent';
+    $('#rejoinMessage').textContent = 'Waiting for the admin to allow you back. This page will update automatically.';
+    pollRejoin();
+  } catch (_) { showToast('Could not reach the server. Please try again.'); }
 });
 
 let awayReported = false;
