@@ -121,7 +121,7 @@ export class QuizRoom extends DurableObject {
     this.g = {
       phase: 'idle', questions: [], currentIndex: -1, answers: new Map(), players: new Map(),
       roundDuration: 20, endsAt: 0, autoAdvanceAt: 0, roundStartedAt: 0, undo: null,
-      rate: new Map(), history: [], feedback: [], pending: [],
+      rate: new Map(), history: [], feedback: [], pending: [], events: [],
     };
   }
 
@@ -178,6 +178,7 @@ export class QuizRoom extends DurableObject {
       this.g.history = [];
       this.g.feedback = [];
       this.g.pending = [];
+      this.g.events = [];
       await this.ctx.storage.put('history', this.g.history);
       await this.ctx.storage.put('feedback', this.g.feedback);
       await this.ctx.storage.put('pending', this.g.pending);
@@ -202,7 +203,8 @@ export class QuizRoom extends DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     server.accept();
-    const role = path.startsWith('/ws/admin') ? 'admin' : 'student';
+    const role = path.startsWith('/ws/admin') ? 'admin'
+      : path.startsWith('/ws/display') ? 'display' : 'student';
     const token = url.searchParams.get('token');
 
     // Second-tab detection (same rule as the local version).
@@ -238,6 +240,7 @@ export class QuizRoom extends DurableObject {
     server.addEventListener('close', () => this.onClose(server));
 
     if (role === 'admin') this.send(server, { type: 'state', state: this.adminState() });
+    else if (role === 'display') this.send(server, { type: 'state', state: this.displayState() });
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -249,6 +252,7 @@ export class QuizRoom extends DurableObject {
     for (const [ws, meta] of this.sockets) {
       if (ws.readyState !== WebSocket.OPEN) continue;
       if (meta.role === 'admin') this.send(ws, { type: 'state', state: this.adminState() });
+      else if (meta.role === 'display') this.send(ws, { type: 'state', state: this.displayState() });
       else {
         const p = this.g.players.get(meta.id);
         if (p) this.send(ws, { type: 'state', state: this.studentState(p) });
@@ -331,6 +335,23 @@ export class QuizRoom extends DurableObject {
     }
     if (this.g.phase === 'gameEnd') state.leaderboard = this.leaderboard();
     return state;
+  }
+
+  displayState() {
+    const q = this.g.questions[this.g.currentIndex];
+    const showBoard = this.g.phase === 'roundEnd' || this.g.phase === 'gameEnd';
+    return {
+      phase: this.g.phase,
+      round: this.g.currentIndex + 1,
+      totalRounds: this.g.questions.length,
+      endsAt: this.g.phase === 'question' ? this.g.endsAt : 0,
+      duration: this.g.roundDuration,
+      question: (this.g.phase === 'question' || this.g.phase === 'roundEnd') && q
+        ? this.projectedQuestion(q) : null,
+      leaderboard: showBoard ? this.leaderboard() : [],
+      events: this.g.events.slice(0, 12),
+      joined: this.connected().length,
+    };
   }
 
   adminState() {
@@ -446,6 +467,7 @@ export class QuizRoom extends DurableObject {
     this.g.answers = new Map();
     this.g.endsAt = 0;
     this.g.undo = null;
+    this.g.events = [];
     this.g.phase = 'lobby';
     for (const [id, p] of this.g.players) if (!p.connected) this.g.players.delete(id);
     for (const p of this.g.players.values()) {
@@ -463,6 +485,7 @@ export class QuizRoom extends DurableObject {
     this.g.answers = new Map();
     this.g.endsAt = 0;
     this.g.undo = null;
+    this.g.events = [];
     for (const [id, p] of this.g.players) if (!p.connected) this.g.players.delete(id);
     for (const p of this.g.players.values()) {
       p.score = 0; p.correctCount = 0; p.streak = 0; p.bestStreak = 0;
@@ -485,6 +508,11 @@ export class QuizRoom extends DurableObject {
     return { name, rollNumber, team };
   }
 
+  addEvent(text, kind = 'info') {
+    this.g.events.unshift({ text, kind, at: Date.now() });
+    if (this.g.events.length > 40) this.g.events.length = 40;
+  }
+
   async flagPending(player, reason) {
     if (!player) return;
     const existing = this.g.pending.find((x) => x.id === player.id);
@@ -499,6 +527,7 @@ export class QuizRoom extends DurableObject {
         reason,
         at: Date.now(),
       });
+      this.addEvent(`${player.name} (${player.rollNumber}) left the quiz — ${reason}`, 'warn');
     }
     await this.ctx.storage.put('pending', this.g.pending);
   }
@@ -510,6 +539,7 @@ export class QuizRoom extends DurableObject {
     for (const item of list) {
       const p = this.g.players.get(item.id);
       if (p) {
+        this.addEvent(`${p.name} was allowed back by the admin`, 'good');
         p.banned = false;
         p.removed = false;
         p.denied = false;
@@ -531,6 +561,7 @@ export class QuizRoom extends DurableObject {
     for (const item of list) {
       const p = this.g.players.get(item.id);
       if (p) {
+        this.addEvent(`${p.name} was denied re-entry by the admin`, 'warn');
         p.banned = true;
         p.denied = true;
         for (const [ws, meta] of this.sockets) {
@@ -812,7 +843,7 @@ export default {
     }
 
     // A fresh room name guarantees all clients run the newest game rules after an upgrade.
-    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v7'));
+    const stub = env.QUIZ_ROOM.get(env.QUIZ_ROOM.idFromName('quiz-main-v8'));
 
     if (path === '/health') return withSecurity(await stub.fetch(new Request(url, { headers: request.headers })));
 

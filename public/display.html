@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0d1a">
+  <title>Quiz Arena — Live display</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div id="toastHost" class="toast-host" aria-live="polite"></div>
+
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">◈</span><span>Quiz<span class="brand-accent">Arena</span></span><span class="pill" style="margin-left:8px">Live display</span></div>
+    <div class="topbar-right">
+      <span class="pill" id="liveLabel">Connecting…</span>
+      <a class="btn btn-ghost btn-sm" href="/admin">Admin</a>
+    </div>
+  </header>
+
+  <main class="app-shell admin-shell">
+    <div class="display-grid">
+      <div class="card">
+        <div class="q-head">
+          <span class="eyebrow" id="displayRound">Waiting for the quiz</span>
+          <span class="timer-pill" id="displayTimer" hidden>⏱ <span id="displaySeconds">0</span>s</span>
+        </div>
+        <div id="displayQuestion" class="muted">The host will start the first question shortly.</div>
+        <div class="timer-track" style="margin-top:18px"><div class="timer-bar" id="displayBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="lb-head"><h3>Rankings</h3><span class="pill" id="displayJoined">0 joined</span></div>
+        <div id="displayBoard"><div class="empty">Rankings appear after each question.</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div class="lb-head"><h3>Live activity</h3><span class="tiny muted">Joins, exits and admin decisions</span></div>
+      <div id="displayEvents"><div class="empty">Nothing yet.</div></div>
+    </div>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/display.js"></script>
+</body>
+</html>

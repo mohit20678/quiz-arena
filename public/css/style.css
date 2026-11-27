@@ -528,6 +528,8 @@ details[open] .bulk-summary::before { content: "▾ "; }
 }
 .choice-btn.selected { background: var(--cyan); color: #052b33; border-color: var(--cyan); }
 @media (max-width: 720px) { .review-grid { grid-template-columns: 1fr; } }
+.display-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .display-grid { grid-template-columns: 1fr; } }
 .status-line { text-transform: capitalize; font-weight: 750; }
 .status-line:first-letter { color: var(--cyan); }
 .projected-card { padding: clamp(24px, 5vw, 44px); }

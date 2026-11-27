@@ -165,7 +165,11 @@ There is no separate browser review page. Feedback is stored on Cloudflare after
 The app is deployed as one Cloudflare Worker with static assets and one Durable Object. After deployment:
 
 - **Students:** `https://<your-subdomain>/student`
-- **Admin (projector):** `https://<your-subdomain>/admin`
+- **Admin:** `https://<your-subdomain>/admin`
+- **Display screen (screen share):** `https://<your-subdomain>/display`
+
+The Display screen is safe to share: it shows only the current question, its timer, rankings after each round, and activity events such as "student left the quiz" or "admin allowed them back". It never shows correct answers or admin controls.
+
 No local server, no tunnel, no laptop that must stay awake. HTTPS is automatic.
 
 <details>
@@ -218,6 +222,8 @@ PORT=8787 ADMIN_PASSWORD="<your-password>" node test/approval.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/autoadvance.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/structured-feedback.cjs
 PORT=8787 ADMIN_PASSWORD="<your-password>" node test/rejoin.cjs
+PORT=8787 ADMIN_PASSWORD="<your-password>" node test/display.cjs
+PORT=8787 ADMIN_PASSWORD="<your-password>" node test/load.cjs
 ```
 
 ---
